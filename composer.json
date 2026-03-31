@@ -1,0 +1,26 @@
+{
+  "name": "ivanbaric/velora",
+  "description": "Unified team, membership, invitation, and RBAC package for Laravel.",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^11.0 || ^12.0 || ^13.0",
+    "livewire/livewire": "^3.0 || ^4.0",
+    "livewire/flux": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "IvanBaric\\Velora\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "IvanBaric\\Velora\\VeloraServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
