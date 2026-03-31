@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Http\Livewire;
 
 use Flux\Flux;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Gate;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Models\UserRole;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -49,7 +52,9 @@ class TeamMemberManager extends Component
     {
         Gate::authorize('manageMembers', team());
 
-        $membership = $this->resolveMembershipByUuid($membershipUuid, ['user', 'roles']);
+        $membership = $this->resolveMembershipByUuid($membershipUuid, ['user']);
+        $this->loadMembershipRoles($membership);
+
         if ($membership->is_owner) {
             return;
         }
@@ -64,7 +69,8 @@ class TeamMemberManager extends Component
     {
         Gate::authorize('manageMembers', team());
 
-        $membership = $this->resolveMembershipByUuid($membershipUuid, ['user', 'roles', 'inviter']);
+        $membership = $this->resolveMembershipByUuid($membershipUuid, ['user', 'inviter']);
+        $this->loadMembershipRoles($membership);
 
         $this->membershipDetails = [
             'uuid' => (string) $membership->uuid,
@@ -166,15 +172,19 @@ class TeamMemberManager extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
+        $memberships = TeamMembership::query()
+            ->with(['user', 'inviter'])
+            ->where('team_id', team()->getKey())
+            ->whereHas('user', function ($query): void {
+                $query->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('email', 'like', '%'.$this->search.'%');
+            })
+            ->paginate(10);
+
+        $this->loadMembershipRolesForPage($memberships);
+
         return view('velora::livewire.team-member-manager', [
-            'memberships' => TeamMembership::query()
-                ->with(['user', 'roles', 'inviter'])
-                ->where('team_id', team()->getKey())
-                ->whereHas('user', function ($query): void {
-                    $query->where('name', 'like', '%'.$this->search.'%')
-                        ->orWhere('email', 'like', '%'.$this->search.'%');
-                })
-                ->paginate(10),
+            'memberships' => $memberships,
             'availableRoles' => Role::query()
                 ->availableToTeam(team()->getKey())
                 ->assignable()
@@ -197,5 +207,41 @@ class TeamMemberManager extends Component
             ->firstOrFail();
 
         return $membership;
+    }
+
+    protected function loadMembershipRoles(TeamMembership $membership): void
+    {
+        $this->hydrateMembershipRoles(new EloquentCollection([$membership]));
+    }
+
+    protected function loadMembershipRolesForPage(LengthAwarePaginator $memberships): void
+    {
+        $this->hydrateMembershipRoles($memberships->getCollection());
+    }
+
+    protected function hydrateMembershipRoles(EloquentCollection $memberships): void
+    {
+        if ($memberships->isEmpty()) {
+            return;
+        }
+
+        $rolesByUserId = UserRole::query()
+            ->active()
+            ->with('role')
+            ->where('team_id', team()->getKey())
+            ->whereIn('user_id', $memberships->pluck('user_id')->unique()->all())
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn (EloquentCollection $assignments) => $assignments
+                ->pluck('role')
+                ->filter()
+                ->values());
+
+        $memberships->each(function (TeamMembership $membership) use ($rolesByUserId): void {
+            $membership->setRelation(
+                'roles',
+                $rolesByUserId->get($membership->user_id, new EloquentCollection())
+            );
+        });
     }
 }
