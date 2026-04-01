@@ -20,8 +20,7 @@ class TeamInvitationMail extends Mailable
         public TeamInvitation $invitation,
         public string $url,
         public string $roleLabel,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

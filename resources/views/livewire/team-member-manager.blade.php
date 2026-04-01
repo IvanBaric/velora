@@ -1,36 +1,75 @@
 <div class="space-y-4">
-    @foreach ($memberships as $membership)
-        <div class="group rounded-[1.75rem] border border-zinc-200 bg-white p-5 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <div class="truncate text-base font-semibold text-zinc-900 dark:text-white">{{ $membership->user->name }}</div>
-                        @if ($membership->is_owner)
-                            <flux:badge color="amber">Owner</flux:badge>
-                        @else
-                            <flux:badge color="emerald">Member</flux:badge>
-                        @endif
-                    </div>
+    <div class="overflow-hidden">
+        <flux:table>
+            <flux:table.columns>
+                <flux:table.column>Member</flux:table.column>
+                <flux:table.column>Email</flux:table.column>
+                <flux:table.column>Status</flux:table.column>
+                <flux:table.column>Role</flux:table.column>
+                <flux:table.column></flux:table.column>
+            </flux:table.columns>
 
-                    <div class="mt-1 text-sm text-zinc-500">{{ $membership->user->email }}</div>
+            <flux:table.rows>
+                @foreach ($memberships as $membership)
+                    <flux:table.row>
+                        <flux:table.cell variant="strong">{{ $membership->user->name }}</flux:table.cell>
+                        <flux:table.cell>{{ $membership->user->email }}</flux:table.cell>
+                        <flux:table.cell>
+                            <flux:tooltip :content="$membership->status?->tooltip() ?? ''" position="bottom">
+                                <div class="inline-flex items-center gap-2">
+                                    @if ($membership->is_owner)
+                                        <flux:badge color="amber" size="sm" inset="top bottom">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <flux:icon name="key" class="size-4" />
+                                                Owner
+                                            </span>
+                                        </flux:badge>
+                                    @else
+                                        <flux:badge color="{{ $membership->status?->color() ?? 'zinc' }}" size="sm" inset="top bottom">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <flux:icon name="{{ $membership->status?->icon() ?? 'minus-circle' }}" class="size-4" />
+                                                {{ ucfirst((string) ($membership->status?->value ?? 'unknown')) }}
+                                            </span>
+                                        </flux:badge>
+                                    @endif
+                                </div>
+                            </flux:tooltip>
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            {{ $membership->roles->first()?->name ?: '-' }}
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            <div class="flex justify-end">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button
+                                        variant="ghost"
+                                        size="sm"
+                                        icon:trailing="ellipsis-horizontal"
+                                        aria-label="Member actions"
+                                    />
 
-                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                        <span class="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                            {{ $membership->roles->pluck('name')->implode(', ') ?: ($membership->is_owner ? 'Full workspace access' : 'No role') }}
-                        </span>
-                    </div>
-                </div>
+                                    <flux:menu>
+                                        <flux:menu.item icon="information-circle" wire:click="openMembershipDetails('{{ $membership->uuid }}')">
+                                            Details
+                                        </flux:menu.item>
 
-                <div class="flex flex-wrap items-center gap-2">
-                    <flux:button wire:click="openMembershipDetails('{{ $membership->uuid }}')" variant="ghost" size="sm">Details</flux:button>
-                    @if (! $membership->is_owner)
-                        <flux:button wire:click="requestRoleChange('{{ $membership->uuid }}')" variant="ghost" size="sm">Change role</flux:button>
-                        <flux:button wire:click="requestRemoveMember('{{ $membership->uuid }}')" variant="danger" size="sm">Remove</flux:button>
-                    @endif
-                </div>
-            </div>
-        </div>
-    @endforeach
+                                        @if (! $membership->is_owner)
+                                            <flux:menu.item icon="shield-check" wire:click="requestRoleChange('{{ $membership->uuid }}')">
+                                                Change role
+                                            </flux:menu.item>
+                                            <flux:menu.item icon="trash" variant="danger" wire:click="requestRemoveMember('{{ $membership->uuid }}')">
+                                                Remove
+                                            </flux:menu.item>
+                                        @endif
+                                    </flux:menu>
+                                </flux:dropdown>
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforeach
+            </flux:table.rows>
+        </flux:table>
+    </div>
 
     <div class="pt-2">
         {{ $memberships->links() }}
@@ -39,7 +78,6 @@
     <flux:modal wire:model="showMembershipDetailsModal" class="space-y-6">
         <div>
             <flux:heading size="lg">Membership details</flux:heading>
-            <flux:subheading class="mt-1">Inspect the member profile, status and invitation metadata.</flux:subheading>
         </div>
 
         @if ($membershipDetails)
@@ -53,14 +91,31 @@
                     <div class="rounded-lg border p-3">
                         <div class="text-xs text-zinc-500">Membership</div>
                         <div><span class="text-zinc-500">UUID:</span> {{ data_get($membershipDetails, 'uuid') }}</div>
-                        <div><span class="text-zinc-500">Status:</span> {{ data_get($membershipDetails, 'status') }}</div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-zinc-500">Status:</span>
+                            @php
+                                $status = \IvanBaric\Velora\Enums\TeamMembershipStatus::tryFrom((string) data_get($membershipDetails, 'status'));
+                            @endphp
+                            @if ($status)
+                                <flux:tooltip :content="$status->tooltip()" position="bottom">
+                                    <flux:badge color="{{ $status->color() }}" size="sm" inset="top bottom">
+                                        <span class="inline-flex items-center gap-1.5">
+                                            <flux:icon name="{{ $status->icon() }}" class="size-4" />
+                                            {{ ucfirst($status->value) }}
+                                        </span>
+                                    </flux:badge>
+                                </flux:tooltip>
+                            @else
+                                <span>{{ data_get($membershipDetails, 'status') }}</span>
+                            @endif
+                        </div>
                         <div><span class="text-zinc-500">Owner:</span> {{ data_get($membershipDetails, 'is_owner') ? 'Yes' : 'No' }}</div>
                     </div>
                 </div>
 
                 <div class="rounded-lg border p-3 space-y-1">
-                    <div><span class="text-zinc-500">Roles:</span>
-                        {{ collect(data_get($membershipDetails, 'roles', []))->filter()->implode(', ') ?: 'No role' }}
+                    <div><span class="text-zinc-500">Role:</span>
+                        {{ data_get($membershipDetails, 'role') ?: 'No role' }}
                     </div>
                     <div><span class="text-zinc-500">Joined at:</span> {{ data_get($membershipDetails, 'joined_at') ?? '-' }}</div>
                     <div><span class="text-zinc-500">Last seen:</span> {{ data_get($membershipDetails, 'last_seen_at') ?? '-' }}</div>
@@ -92,7 +147,6 @@
     <flux:modal wire:model="showRoleChangeModal" class="space-y-6">
         <div>
             <flux:heading size="lg">Change role</flux:heading>
-            <flux:subheading class="mt-1">Choose a new role assignment for this team member.</flux:subheading>
         </div>
         <flux:select wire:model="pendingRole" label="Role" variant="listbox">
             @foreach ($availableRoles as $slug => $roleName)
@@ -108,7 +162,6 @@
     <flux:modal wire:model="showRemoveMemberModal" class="space-y-6">
         <div>
             <flux:heading size="lg">Remove member</flux:heading>
-            <flux:subheading class="mt-1">This removes workspace access for the selected user.</flux:subheading>
         </div>
         <flux:text>Remove {{ $pendingRemoveUserName }} from this team?</flux:text>
         <div class="flex justify-end gap-2">

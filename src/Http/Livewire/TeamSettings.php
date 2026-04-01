@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Http\Livewire;
 
-use Flux\Flux;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
-use IvanBaric\Velora\Models\TeamInvitation;
+use IvanBaric\Velora\Actions\CreateTeamAction;
+use IvanBaric\Velora\Actions\LeaveTeamAction;
+use IvanBaric\Velora\Actions\UpdateTeamNameAction;
+use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
+use IvanBaric\Velora\Models\Team;
 use Livewire\Component;
 
 class TeamSettings extends Component
 {
+    use InteractsWithActionResults;
+
     public string $name = '';
 
     public bool $showLeaveTeamModal = false;
@@ -19,11 +25,18 @@ class TeamSettings extends Component
 
     public bool $showBasicInfoModal = false;
 
+    public bool $showCreateTeamModal = false;
+
     public bool $showSearchModal = false;
 
     public string $search = '';
 
-    protected $listeners = ['close-invitations-modal' => 'closeInvitationsModal'];
+    public string $createTeamName = '';
+
+    protected $listeners = [
+        'close-invitations-modal' => 'closeInvitationsModal',
+        'close-create-team-modal' => 'closeCreateTeamModal',
+    ];
 
     public function mount(): void
     {
@@ -40,7 +53,21 @@ class TeamSettings extends Component
         $this->showInvitationsModal = false;
     }
 
-    public function confirmLeaveTeam(): void
+    public function closeCreateTeamModal(): void
+    {
+        $this->showCreateTeamModal = false;
+        $this->createTeamName = '';
+        $this->resetErrorBag('createTeamName');
+    }
+
+    public function openCreateTeamModal(): void
+    {
+        $this->createTeamName = '';
+        $this->resetErrorBag('createTeamName');
+        $this->showCreateTeamModal = true;
+    }
+
+    public function confirmLeaveTeam(LeaveTeamAction $leaveTeam): void
     {
         $membership = auth()->user()?->membershipForCurrentTeam();
         if (! $membership || $membership->is_owner) {
@@ -49,18 +76,18 @@ class TeamSettings extends Component
             return;
         }
 
-        TeamInvitation::query()
-            ->active()
-            ->where('email', TeamInvitation::normalizeEmail((string) auth()->user()->email))
-            ->get()
-            ->each(fn (TeamInvitation $invitation) => $invitation->markRevoked(auth()->id(), ['reason' => 'member_left_team']));
+        $result = $leaveTeam->execute($membership, (string) auth()->user()->email, auth()->id());
+        $this->toastFromResult($result);
+        $this->showLeaveTeamModal = false;
 
-        $membership->delete();
+        if (! $result->success) {
+            return;
+        }
 
         $this->redirectRoute('dashboard');
     }
 
-    public function updateTeamName(): void
+    public function updateTeamName(UpdateTeamNameAction $updateTeamName): void
     {
         Gate::authorize('update', team());
 
@@ -68,13 +95,30 @@ class TeamSettings extends Component
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        team()->update(['name' => $this->name]);
+        $result = $updateTeamName->execute(team(), $this->name);
         $this->showBasicInfoModal = false;
-
-        Flux::toast(variant: 'success', text: 'Team name updated.');
+        $this->toastFromResult($result);
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function createTeam(CreateTeamAction $createTeam)
+    {
+        $this->validate([
+            'createTeamName' => ['required', 'string', 'max:255'],
+        ]);
+
+        /** @var Team $team */
+        $team = $createTeam->execute(auth()->user(), $this->createTeamName);
+
+        set_current_team($team);
+        $this->showCreateTeamModal = false;
+        $this->createTeamName = '';
+        session()->flash('status', "Team {$team->name} created.");
+        session()->flash('status_variant', 'success');
+
+        return $this->redirectRoute('teams.settings');
+    }
+
+    public function render(): View
     {
         return view('velora::livewire.team-settings', [
             'team' => team(),

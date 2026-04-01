@@ -4,24 +4,21 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Http\Livewire;
 
-use App\Models\User;
-use Flux\Flux;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use IvanBaric\Velora\Enums\TeamInvitationStatus;
-use IvanBaric\Velora\Enums\TeamMembershipStatus;
-use IvanBaric\Velora\Mail\TeamInvitationMail;
+use IvanBaric\Velora\Actions\SendInvitationAction;
+use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
-use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\ActionResult;
 use Livewire\Component;
 
 class TeamInvitationForm extends Component
 {
+    use InteractsWithActionResults;
+
     public string $email = '';
 
     public string $roleSlug = '';
@@ -33,7 +30,9 @@ class TeamInvitationForm extends Component
 
     public function validateInvitation(): bool
     {
-        Gate::authorize('manageMembers', team());
+        if (! $this->authorizeOrToast('manageMembers', team())) {
+            return false;
+        }
 
         try {
             $this->validateInvitationData();
@@ -46,46 +45,24 @@ class TeamInvitationForm extends Component
         }
     }
 
-    public function sendInvitation(): void
+    public function sendInvitation(SendInvitationAction $sendInvitation): void
     {
-        Gate::authorize('manageMembers', team());
+        if (! $this->authorizeOrToast('manageMembers', team())) {
+            return;
+        }
+
         $this->ensureRateLimit('send');
 
         $normalizedEmail = $this->validateInvitationData();
-        $existing = $this->findExistingInvitation($normalizedEmail);
 
-        if ($existing) {
-            $plainToken = $existing->prepareForResend(auth()->id(), $this->roleSlug);
-            $invitation = $existing->fresh();
-        } else {
-            $invitation = TeamInvitation::query()->create([
-                'email' => $normalizedEmail,
-                'role_slug' => $this->roleSlug,
-                'invited_by_user_id' => auth()->id(),
-            ]);
-            $plainToken = $invitation->issueToken();
-        }
-
-        $url = URL::temporarySignedRoute(
-            'teams.invitation.accept',
-            $invitation->expires_at ?? TeamInvitation::defaultExpiresAt(),
-            ['token' => $plainToken],
-        );
-
-        $roleLabel = Role::query()
-            ->availableToTeam(team()->getKey())
-            ->where('slug', $invitation->role_slug)
-            ->value('name') ?? $invitation->role_slug;
-
-        Mail::to($invitation->email)->send(new TeamInvitationMail($invitation, $url, (string) $roleLabel));
-
-        Flux::toast(variant: 'success', text: "Invitation sent to {$invitation->email}.");
+        $result = $sendInvitation->execute($normalizedEmail, $this->roleSlug, current_team_id(), auth()->id());
+        $this->toastFromResult(ActionResult::success($result->message));
 
         $this->reset('email');
         $this->dispatch('invitation-updated');
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         return view('velora::livewire.team-invitation-form', [
             'roles' => Role::query()->availableToTeam(team()->getKey())->assignable()->notHidden()->orderBy('sort_order')->get(),
@@ -104,46 +81,7 @@ class TeamInvitationForm extends Component
             ],
         )->validate();
 
-        $this->ensureUserIsNotAlreadyMember($normalizedEmail);
-        $this->ensureRoleExists();
-
         return $normalizedEmail;
-    }
-
-    protected function ensureRoleExists(): void
-    {
-        $exists = Role::query()
-            ->availableToTeam(team()->getKey())
-            ->assignable()
-            ->where('slug', $this->roleSlug)
-            ->exists();
-
-        if (! $exists) {
-            throw ValidationException::withMessages([
-                'roleSlug' => 'Selected role is not assignable.',
-            ]);
-        }
-    }
-
-    protected function ensureUserIsNotAlreadyMember(string $normalizedEmail): void
-    {
-        $user = User::query()->where('email', $normalizedEmail)->first();
-        if (! $user) {
-            return;
-        }
-
-        $isMember = TeamMembership::query()
-            ->withoutGlobalScopes()
-            ->where('team_id', team()->getKey())
-            ->where('user_id', $user->getKey())
-            ->where('status', TeamMembershipStatus::Active->value)
-            ->exists();
-
-        if ($isMember) {
-            throw ValidationException::withMessages([
-                'email' => 'User is already a team member.',
-            ]);
-        }
     }
 
     protected function ensureRateLimit(string $action): void
@@ -159,24 +97,5 @@ class TeamInvitationForm extends Component
         }
 
         RateLimiter::hit($key, 60);
-    }
-
-    protected function findExistingInvitation(string $normalizedEmail): ?TeamInvitation
-    {
-        $existing = TeamInvitation::query()
-            ->where('email', $normalizedEmail)
-            ->first();
-
-        if ($existing?->status === TeamInvitationStatus::Pending && ! $existing->isExpired()) {
-            throw ValidationException::withMessages([
-                'email' => 'An active invitation already exists for this email.',
-            ]);
-        }
-
-        if ($existing && $existing->isExpired()) {
-            $existing->markExpired();
-        }
-
-        return $existing;
     }
 }

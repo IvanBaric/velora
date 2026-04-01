@@ -5,9 +5,11 @@
   "license": "MIT",
   "require": {
     "php": "^8.2",
-    "laravel/framework": "^11.0 || ^12.0 || ^13.0",
-    "livewire/livewire": "^3.0 || ^4.0",
-    "livewire/flux": "^2.0"
+    "laravel/framework": "^11.0 || ^12.0 || ^13.0"
+  },
+  "suggest": {
+    "livewire/livewire": "Required only for the packaged Livewire UI components.",
+    "livewire/flux": "Optional toast/UI layer for Velora Livewire components."
   },
   "autoload": {
     "psr-4": {

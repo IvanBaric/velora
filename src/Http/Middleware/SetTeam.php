@@ -13,8 +13,7 @@ class SetTeam
 {
     public function __construct(
         protected TeamContextResolver $resolver,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next)
     {

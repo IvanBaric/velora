@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,6 @@ use Illuminate\Support\Str;
 use IvanBaric\Velora\Enums\TeamInvitationStatus;
 use IvanBaric\Velora\Traits\BelongsToTeam;
 use IvanBaric\Velora\Traits\HasUuid;
-use Carbon\CarbonInterface;
 
 class TeamInvitation extends Model
 {
@@ -76,10 +76,7 @@ class TeamInvitation extends Model
 
     public function inviter(): BelongsTo
     {
-        /** @var class-string<Model> $userModel */
-        $userModel = (string) config('velora.models.user');
-
-        return $this->belongsTo($userModel, 'invited_by_user_id');
+        return $this->belongsTo(velora_user_model(), 'invited_by_user_id');
     }
 
     public function events(): HasMany
@@ -109,6 +106,22 @@ class TeamInvitation extends Model
     {
         return $this->status === TeamInvitationStatus::Expired
             || ($this->expires_at !== null && $this->expires_at->isPast());
+    }
+
+    public function canBeAccepted(): bool
+    {
+        return $this->status === TeamInvitationStatus::Pending && ! $this->isExpired();
+    }
+
+    public function canBeRevoked(): bool
+    {
+        return $this->status !== TeamInvitationStatus::Accepted
+            && $this->status !== TeamInvitationStatus::Revoked;
+    }
+
+    public function canBeResent(): bool
+    {
+        return $this->status !== TeamInvitationStatus::Accepted;
     }
 
     public function markExpired(?int $actorUserId = null, array $meta = []): void

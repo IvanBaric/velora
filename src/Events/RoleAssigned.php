@@ -17,6 +17,5 @@ class RoleAssigned
     public function __construct(
         public UserRole $userRole,
         public Role $role,
-    ) {
-    }
+    ) {}
 }

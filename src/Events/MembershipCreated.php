@@ -15,6 +15,5 @@ class MembershipCreated
 
     public function __construct(
         public TeamMembership $membership,
-    ) {
-    }
+    ) {}
 }

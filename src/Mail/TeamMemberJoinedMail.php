@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Mail;
 
-use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -19,9 +19,8 @@ class TeamMemberJoinedMail extends Mailable
 
     public function __construct(
         public TeamInvitation $invitation,
-        public User $joinedUser,
-    ) {
-    }
+        public Model $joinedUser,
+    ) {}
 
     public function envelope(): Envelope
     {

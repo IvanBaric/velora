@@ -13,8 +13,7 @@ class EnsureRole
 {
     public function __construct(
         protected PermissionRegistrar $registrar,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next, string $role): Response
     {

@@ -13,4 +13,3 @@ class RolePermissionItem extends Pivot
 
     protected $table = 'role_permission_items';
 }
-

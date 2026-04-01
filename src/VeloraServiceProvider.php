@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use IvanBaric\Velora\Actions\CreatePersonalTeam;
+use IvanBaric\Velora\Events\InvitationAccepted;
 use IvanBaric\Velora\Http\Livewire\RoleManager;
 use IvanBaric\Velora\Http\Livewire\TeamCreate;
 use IvanBaric\Velora\Http\Livewire\TeamDropdown;
@@ -21,11 +22,13 @@ use IvanBaric\Velora\Http\Middleware\EnsurePermission;
 use IvanBaric\Velora\Http\Middleware\EnsureRole;
 use IvanBaric\Velora\Http\Middleware\SetTeam;
 use IvanBaric\Velora\Http\Middleware\VerifyMembership;
+use IvanBaric\Velora\Listeners\SendTeamMemberJoinedNotifications;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Policies\TeamPolicy;
 use IvanBaric\Velora\Support\PermissionRegistrar;
 use IvanBaric\Velora\Support\SystemAccessSynchronizer;
 use IvanBaric\Velora\Support\TeamContextResolver;
+use IvanBaric\Velora\Support\UserModelResolver;
 use Livewire\Livewire;
 
 class VeloraServiceProvider extends ServiceProvider
@@ -37,6 +40,7 @@ class VeloraServiceProvider extends ServiceProvider
         $this->app->singleton(TeamContextResolver::class);
         $this->app->singleton(PermissionRegistrar::class);
         $this->app->singleton(SystemAccessSynchronizer::class);
+        $this->app->singleton(UserModelResolver::class);
 
         $helpers = __DIR__.'/helpers.php';
         if (file_exists($helpers)) {
@@ -122,11 +126,11 @@ class VeloraServiceProvider extends ServiceProvider
 
     protected function registerEvents(): void
     {
-        if (! config('velora.create_personal_team_on_registration', true)) {
-            return;
-        }
+        Event::listen(InvitationAccepted::class, SendTeamMemberJoinedNotifications::class);
 
-        Event::listen(Registered::class, CreatePersonalTeam::class);
+        if (config('velora.create_personal_team_on_registration', true)) {
+            Event::listen(Registered::class, CreatePersonalTeam::class);
+        }
     }
 
     protected function syncDefaults(): void

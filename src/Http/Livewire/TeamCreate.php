@@ -4,37 +4,49 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Http\Livewire;
 
-use Flux\Flux;
+use Illuminate\Contracts\View\View;
+use IvanBaric\Velora\Actions\CreateTeamAction;
+use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
 use IvanBaric\Velora\Models\Team;
-use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\ActionResult;
 use Livewire\Component;
 
 class TeamCreate extends Component
 {
+    use InteractsWithActionResults;
+
     public string $name = '';
 
-    public function createTeam()
+    public bool $modal = false;
+
+    public function mount(bool $modal = false): void
+    {
+        $this->modal = $modal;
+    }
+
+    public function createTeam(CreateTeamAction $createTeam)
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $team = Team::query()->create([
-            'name' => $this->name,
-        ]);
-
-        $membership = TeamMembership::ensureForUser(auth()->user(), $team, true);
-        $membership->assignRole('admin', $team);
+        /** @var Team $team */
+        $team = $createTeam->execute(auth()->user(), $this->name);
 
         set_current_team($team);
-        Flux::toast(variant: 'success', text: "Team {$team->name} created.");
+        $this->toastFromResult(ActionResult::success("Team {$team->name} created."));
 
         return $this->redirectRoute('teams.settings');
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
-        return view('velora::livewire.team-create')
-            ->layout((string) config('velora.views.layouts.app', 'layouts.app'));
+        $view = view('velora::livewire.team-create');
+
+        if ($this->modal) {
+            return $view;
+        }
+
+        return $view->layout((string) config('velora.views.layouts.app', 'layouts.app'));
     }
 }

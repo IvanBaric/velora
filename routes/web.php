@@ -8,11 +8,13 @@ use IvanBaric\Velora\Http\Controllers\TeamSwitchController;
 use IvanBaric\Velora\Http\Livewire\TeamCreate;
 use IvanBaric\Velora\Http\Livewire\TeamSettings;
 
-Route::middleware(config('velora.routes.authenticated_middleware'))->group(function (): void {
-    Route::get('/app/team', TeamSettings::class)->name('teams.settings');
-    Route::get('/app/team/create', TeamCreate::class)->name('teams.create');
-    Route::get('/app/team/switch/{team}', TeamSwitchController::class)->name('teams.switch');
-});
+if (class_exists(\Livewire\Livewire::class)) {
+    Route::middleware(config('velora.routes.authenticated_middleware'))->group(function (): void {
+        Route::get('/app/team', TeamSettings::class)->name('teams.settings');
+        Route::get('/app/team/create', TeamCreate::class)->name('teams.create');
+        Route::get('/app/team/switch/{team}', TeamSwitchController::class)->name('teams.switch');
+    });
+}
 
 Route::middleware(config('velora.routes.public_middleware'))
     ->controller(TeamInvitationController::class)

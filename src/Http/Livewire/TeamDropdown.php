@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Http\Livewire;
 
+use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 class TeamDropdown extends Component
@@ -15,7 +16,7 @@ class TeamDropdown extends Component
         $this->variant = $variant;
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         return view('velora::livewire.team-dropdown', [
             'currentTeam' => team(),

@@ -4,73 +4,64 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Http\Livewire;
 
-use App\Models\User;
-use Flux\Flux;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
+use IvanBaric\Velora\Actions\ResendInvitationAction;
+use IvanBaric\Velora\Actions\RevokeInvitationAction;
 use IvanBaric\Velora\Enums\TeamInvitationStatus;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
-use IvanBaric\Velora\Mail\TeamInvitationMail;
+use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\ActionResult;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class TeamInvitationManager extends Component
 {
+    use InteractsWithActionResults;
     use WithPagination;
 
     protected $listeners = ['invitation-updated' => '$refresh'];
 
-    public function resendInvitation(string $invitationUuid): void
+    public function resendInvitation(string $invitationUuid, ResendInvitationAction $resendInvitation): void
     {
-        Gate::authorize('manageMembers', team());
+        if (! $this->authorizeOrToast('manageMembers', team())) {
+            return;
+        }
+
         $this->ensureRateLimit('resend');
 
         $invitation = $this->resolveInvitationByUuid($invitationUuid);
         $this->ensureUserIsNotAlreadyMember($invitation->email);
-
-        $plainToken = $invitation->prepareForResend(auth()->id(), $invitation->role_slug);
-
-        $url = URL::temporarySignedRoute(
-            'teams.invitation.accept',
-            $invitation->expires_at ?? TeamInvitation::defaultExpiresAt(),
-            ['token' => $plainToken],
-        );
-
-        $roleLabel = Role::query()
-            ->availableToTeam(team()->getKey())
-            ->where('slug', $invitation->role_slug)
-            ->value('name') ?? $invitation->role_slug;
-
-        Mail::to($invitation->email)->send(new TeamInvitationMail($invitation, $url, (string) $roleLabel));
-
-        Flux::toast(variant: 'success', text: "Invitation resent to {$invitation->email}.");
+        $result = $resendInvitation->execute($invitation, auth()->id(), $invitation->role_slug);
+        $this->toastFromResult(ActionResult::success($result->message));
         $this->dispatch('invitation-updated');
     }
 
-    public function revokeInvitation(string $invitationUuid): void
+    public function revokeInvitation(string $invitationUuid, RevokeInvitationAction $revokeInvitation): void
     {
-        Gate::authorize('manageMembers', team());
+        if (! $this->authorizeOrToast('manageMembers', team())) {
+            return;
+        }
+
         $this->ensureRateLimit('revoke');
 
         $invitation = $this->resolveInvitationByUuid($invitationUuid);
-        if ($invitation->status === TeamInvitationStatus::Accepted) {
+        $result = $revokeInvitation->execute($invitation, auth()->id());
+        if (! $result->success) {
             throw ValidationException::withMessages([
-                'invitations' => 'Accepted invitations cannot be revoked.',
+                'invitations' => $result->message,
             ]);
         }
 
-        $invitation->markRevoked(auth()->id(), ['reason' => 'manual_revoke']);
-        Flux::toast(variant: 'success', text: 'Invitation revoked.');
+        $this->toastFromResult($result);
         $this->dispatch('invitation-updated');
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         TeamInvitation::query()
             ->pending()
@@ -98,7 +89,7 @@ class TeamInvitationManager extends Component
 
     protected function ensureUserIsNotAlreadyMember(string $email): void
     {
-        $user = User::query()->where('email', $email)->first();
+        $user = velora_user_query()->where('email', $email)->first();
         if (! $user) {
             return;
         }
@@ -136,6 +127,7 @@ class TeamInvitationManager extends Component
     {
         /** @var TeamInvitation $invitation */
         $invitation = TeamInvitation::query()
+            ->where('team_id', team()->getKey())
             ->where('uuid', $invitationUuid)
             ->firstOrFail();
 

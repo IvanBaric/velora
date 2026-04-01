@@ -10,6 +10,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $userModel = velora_user_model();
+        $userTable = velora_user_table();
+
         Schema::create('teams', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
@@ -17,14 +20,14 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('team_memberships', function (Blueprint $table): void {
+        Schema::create('team_memberships', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignIdFor($userModel, 'user_id')->constrained($userTable)->cascadeOnDelete();
             $table->string('status')->default('active');
             $table->boolean('is_owner')->default(false);
-            $table->foreignId('invited_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignIdFor($userModel, 'invited_by_user_id')->nullable()->constrained($userTable)->nullOnDelete();
             $table->string('invited_email')->nullable();
             $table->timestamp('joined_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
@@ -57,13 +60,13 @@ return new class extends Migration
             $table->index(['is_system', 'assignable']);
         });
 
-        Schema::create('user_roles', function (Blueprint $table): void {
+        Schema::create('user_roles', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignIdFor($userModel, 'user_id')->constrained($userTable)->cascadeOnDelete();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('assigned_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignIdFor($userModel, 'assigned_by_user_id')->nullable()->constrained($userTable)->nullOnDelete();
             $table->timestamp('assigned_at')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
@@ -74,7 +77,7 @@ return new class extends Migration
             $table->index('expires_at');
         });
 
-        Schema::create('team_invitations', function (Blueprint $table): void {
+        Schema::create('team_invitations', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
@@ -82,7 +85,7 @@ return new class extends Migration
             $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
             $table->string('role_slug')->nullable();
             $table->string('status', 20)->default('pending');
-            $table->foreignId('invited_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignIdFor($userModel, 'invited_by_user_id')->nullable()->constrained($userTable)->nullOnDelete();
             $table->string('token_hash', 64)->nullable()->unique();
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('accepted_at')->nullable();
@@ -96,11 +99,11 @@ return new class extends Migration
             $table->index(['team_id', 'email']);
         });
 
-        Schema::create('team_invitation_events', function (Blueprint $table): void {
+        Schema::create('team_invitation_events', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->foreignId('team_invitation_id')->constrained('team_invitations')->cascadeOnDelete();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('actor_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignIdFor($userModel, 'actor_user_id')->nullable()->constrained($userTable)->nullOnDelete();
             $table->string('type', 50);
             $table->json('meta')->nullable();
             $table->timestamps();

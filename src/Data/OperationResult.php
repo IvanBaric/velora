@@ -7,18 +7,17 @@ namespace IvanBaric\Velora\Data;
 final readonly class OperationResult
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function __construct(
         public bool $ok,
         public string $message,
         public string $code = 'ok',
         public array $data = [],
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function success(string $message, array $data = [], string $code = 'ok'): self
     {
@@ -26,7 +25,7 @@ final readonly class OperationResult
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function failure(string $message, array $data = [], string $code = 'error'): self
     {

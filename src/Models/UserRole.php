@@ -42,18 +42,12 @@ class UserRole extends Model
 
     public function user(): BelongsTo
     {
-        /** @var class-string<Model> $userModel */
-        $userModel = (string) config('velora.models.user');
-
-        return $this->belongsTo($userModel, 'user_id');
+        return $this->belongsTo(velora_user_model(), 'user_id');
     }
 
     public function assignedBy(): BelongsTo
     {
-        /** @var class-string<Model> $userModel */
-        $userModel = (string) config('velora.models.user');
-
-        return $this->belongsTo($userModel, 'assigned_by_user_id');
+        return $this->belongsTo(velora_user_model(), 'assigned_by_user_id');
     }
 
     public function scopeActive(Builder $query): Builder

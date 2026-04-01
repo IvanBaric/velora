@@ -55,6 +55,12 @@ return [
         'team' => Team::class,
     ],
 
+    'current_team' => [
+        'strategy' => env('VELORA_CURRENT_TEAM_STRATEGY', 'strict'),
+        'default_team_name' => env('VELORA_DEFAULT_TEAM_NAME', 'Default Team'),
+        'system_team_name' => env('VELORA_SYSTEM_TEAM_NAME', 'System Team'),
+    ],
+
     'session_key' => env('VELORA_CURRENT_TEAM_SESSION_KEY', 'velora.current_team_id'),
 
     'create_personal_team_on_registration' => env('VELORA_CREATE_PERSONAL_TEAM_ON_REGISTRATION', true),
@@ -71,6 +77,7 @@ return [
 
     'invitations' => [
         'expires_after_days' => (int) env('VELORA_INVITATION_EXPIRES_AFTER_DAYS', 7),
+        'accept_redirect_route' => env('VELORA_INVITATION_ACCEPT_REDIRECT_ROUTE', 'teams.settings'),
     ],
 
     'routes' => [

@@ -4,22 +4,36 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Policies;
 
-use App\Models\User;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Support\TeamPermissions;
 
 class TeamPolicy
 {
-    public function update(User $user, Team $team): bool
+    public function update(mixed $user, Team $team): bool
     {
-        $membership = $user->membershipForCurrentTeam();
+        if (! $user || ! method_exists($user, 'memberships')) {
+            return false;
+        }
+
+        $membership = $user->memberships()
+            ->withoutGlobalScopes()
+            ->where('team_id', $team->getKey())
+            ->first();
 
         return (bool) $membership?->is_owner;
     }
 
-    public function manageMembers(User $user, Team $team): bool
+    public function manageMembers(mixed $user, Team $team): bool
     {
-        $membership = $user->membershipForCurrentTeam();
+        if (! $user || ! method_exists($user, 'memberships')) {
+            return false;
+        }
+
+        $membership = $user->memberships()
+            ->withoutGlobalScopes()
+            ->where('team_id', $team->getKey())
+            ->first();
+
         if (! $membership) {
             return false;
         }

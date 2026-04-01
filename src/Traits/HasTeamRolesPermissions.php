@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use IvanBaric\Velora\Data\OperationResult;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
+use IvanBaric\Velora\Events\MembershipRoleSynced;
 use IvanBaric\Velora\Events\RoleAssigned;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\Team;
@@ -57,27 +58,25 @@ trait HasTeamRolesPermissions
         }
 
         $userId = $this->resolveRoleOwnerId();
-        $existing = UserRole::query()
-            ->where('user_id', $userId)
-            ->where('team_id', $teamId)
-            ->where('role_id', $resolvedRole->getKey())
-            ->first();
+        $existing = $this->currentRoleAssignment($userId, $teamId);
 
-        if ($existing) {
+        if ($existing && $this->assignmentMatchesRole($existing, $resolvedRole)) {
             return OperationResult::success('Role is already assigned.', ['user_role_id' => $existing->getKey()], 'already_assigned');
         }
 
-        $userRole = UserRole::query()->create([
-            'user_id' => $userId,
-            'team_id' => $teamId,
-            'role_id' => $resolvedRole->getKey(),
-            'assigned_by_user_id' => $assignedByUserId ?? $this->resolveAssignerUserId(),
-            'assigned_at' => now(),
-        ]);
+        $userRole = $this->persistSingleRoleAssignment(
+            $userId,
+            $teamId,
+            $resolvedRole,
+            $assignedByUserId ?? $this->resolveAssignerUserId(),
+        );
 
         event(new RoleAssigned($userRole, $resolvedRole));
 
-        return OperationResult::success('Role assigned successfully.', ['user_role_id' => $userRole->getKey()]);
+        return OperationResult::success(
+            $existing ? 'Role updated successfully.' : 'Role assigned successfully.',
+            ['user_role_id' => $userRole->getKey()],
+        );
     }
 
     public function removeRole(int|string|Role $role, Team|int|null $team = null): OperationResult
@@ -105,27 +104,41 @@ trait HasTeamRolesPermissions
     {
         $teamId = $this->resolveTeamId($team);
         $resolvedRoles = $this->resolveRolesCollection($roles, $teamId);
-        $roleIds = $resolvedRoles->pluck('id')->all();
+        if ($resolvedRoles->count() > 1) {
+            return OperationResult::failure('Only one role can be assigned per team.', code: 'multiple_roles_not_supported');
+        }
 
-        UserRole::query()
-            ->where('user_id', $this->resolveRoleOwnerId())
-            ->where('team_id', $teamId)
-            ->whereNotIn('role_id', $roleIds)
-            ->delete();
+        $userId = $this->resolveRoleOwnerId();
+        $resolvedRole = $resolvedRoles->first();
 
-        foreach ($resolvedRoles as $roleModel) {
-            UserRole::query()->updateOrCreate(
-                [
-                    'user_id' => $this->resolveRoleOwnerId(),
-                    'team_id' => $teamId,
-                    'role_id' => $roleModel->getKey(),
-                ],
-                [
-                    'assigned_by_user_id' => $assignedByUserId ?? $this->resolveAssignerUserId(),
-                    'assigned_at' => now(),
-                    'expires_at' => null,
-                ],
-            );
+        if ($resolvedRole instanceof Role) {
+            if (! $this->roleAssignable($resolvedRole)) {
+                return OperationResult::failure('Role is not assignable.', code: 'role_not_assignable');
+            }
+
+            $existing = $this->currentRoleAssignment($userId, $teamId);
+
+            if (! ($existing && $this->assignmentMatchesRole($existing, $resolvedRole))) {
+                $this->persistSingleRoleAssignment(
+                    $userId,
+                    $teamId,
+                    $resolvedRole,
+                    $assignedByUserId ?? $this->resolveAssignerUserId(),
+                );
+            }
+        } else {
+            UserRole::query()
+                ->where('user_id', $userId)
+                ->where('team_id', $teamId)
+                ->delete();
+        }
+
+        if ($this instanceof TeamMembership) {
+            $roleSlugs = $resolvedRole ? [(string) $resolvedRole->slug] : [];
+            $this->recordEvent('role_synced', $assignedByUserId ?? $this->resolveAssignerUserId(), [
+                'role_slugs' => $roleSlugs,
+            ]);
+            event(new MembershipRoleSynced($this, $roleSlugs));
         }
 
         return OperationResult::success('Roles synced successfully.');
@@ -163,7 +176,12 @@ trait HasTeamRolesPermissions
             ->active()
             ->where('user_id', $this->resolveRoleOwnerId())
             ->where('team_id', $teamId)
-            ->whereHas('role.permissionItems', fn ($query) => $query->where('code', $permissionCode)->where('is_active', true))
+            ->whereHas('role', function ($query) use ($permissionCode): void {
+                $query->withoutGlobalScopes()
+                    ->whereHas('permissionItems', fn ($permissionQuery) => $permissionQuery
+                        ->where('code', $permissionCode)
+                        ->where('is_active', true));
+            })
             ->exists();
     }
 
@@ -180,7 +198,7 @@ trait HasTeamRolesPermissions
             ->active()
             ->where('user_id', $this->resolveRoleOwnerId())
             ->where('team_id', $teamId)
-            ->whereHas('role', fn ($query) => $query->where('slug', $superadminSlug))
+            ->whereHas('role', fn ($query) => $query->withoutGlobalScopes()->where('slug', $superadminSlug))
             ->exists();
     }
 
@@ -195,6 +213,7 @@ trait HasTeamRolesPermissions
         }
 
         return $this->memberships()
+            ->withoutGlobalScopes()
             ->where('team_id', $teamId)
             ->where('is_owner', true)
             ->where('status', TeamMembershipStatus::Active->value)
@@ -239,6 +258,43 @@ trait HasTeamRolesPermissions
     protected function roleAssignable(Role $role): bool
     {
         return $role->assignable && $role->is_active;
+    }
+
+    protected function currentRoleAssignment(int $userId, int $teamId): ?UserRole
+    {
+        /** @var UserRole|null $assignment */
+        $assignment = UserRole::query()
+            ->where('user_id', $userId)
+            ->where('team_id', $teamId)
+            ->orderByDesc('id')
+            ->first();
+
+        return $assignment;
+    }
+
+    protected function assignmentMatchesRole(UserRole $assignment, Role $role): bool
+    {
+        return (int) $assignment->role_id === (int) $role->getKey()
+            && ($assignment->expires_at === null || $assignment->expires_at->isFuture());
+    }
+
+    protected function persistSingleRoleAssignment(int $userId, int $teamId, Role $role, ?int $assignedByUserId = null): UserRole
+    {
+        /** @var UserRole $assignment */
+        $assignment = UserRole::query()->updateOrCreate(
+            [
+                'user_id' => $userId,
+                'team_id' => $teamId,
+            ],
+            [
+                'role_id' => $role->getKey(),
+                'assigned_by_user_id' => $assignedByUserId,
+                'assigned_at' => now(),
+                'expires_at' => null,
+            ],
+        );
+
+        return $assignment;
     }
 
     protected function resolveRoleOwnerId(): int

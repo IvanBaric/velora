@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Http\Livewire;
 
-use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Gate;
+use IvanBaric\Velora\Actions\RemoveTeamMemberAction;
+use IvanBaric\Velora\Actions\SyncMembershipRoleAction;
+use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
 use IvanBaric\Velora\Models\Role;
-use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Models\UserRole;
 use Livewire\Component;
@@ -17,6 +19,7 @@ use Livewire\WithPagination;
 
 class TeamMemberManager extends Component
 {
+    use InteractsWithActionResults;
     use WithPagination;
 
     public string $search = '';
@@ -60,7 +63,7 @@ class TeamMemberManager extends Component
         }
 
         $this->pendingRoleMembershipUuid = (string) $membership->uuid;
-        $this->pendingRole = (string) ($membership->roles->pluck('slug')->first() ?? Role::getDefault(team()->getKey())?->slug ?? '');
+        $this->pendingRole = (string) ($membership->roles->first()?->slug ?? Role::getDefault(team()->getKey())?->slug ?? '');
         $this->pendingRoleUserName = $membership->user?->name;
         $this->showRoleChangeModal = true;
     }
@@ -80,7 +83,7 @@ class TeamMemberManager extends Component
             ],
             'status' => $membership->status?->value,
             'is_owner' => (bool) $membership->is_owner,
-            'roles' => $membership->roles->pluck('name')->values()->all(),
+            'role' => $membership->roles->first()?->name,
             'joined_at' => $membership->joined_at?->toDateTimeString(),
             'last_seen_at' => $membership->last_seen_at?->toDateTimeString(),
             'invited_email' => $membership->invited_email,
@@ -97,7 +100,7 @@ class TeamMemberManager extends Component
         $this->membershipDetails = null;
     }
 
-    public function confirmRoleChange(): void
+    public function confirmRoleChange(SyncMembershipRoleAction $syncMembershipRole): void
     {
         Gate::authorize('manageMembers', team());
         abort_unless($this->pendingRoleMembershipUuid && $this->pendingRole, 422);
@@ -109,10 +112,10 @@ class TeamMemberManager extends Component
             return;
         }
 
-        $membership->syncRoles([$this->pendingRole]);
+        $result = $syncMembershipRole->execute($membership, (string) $this->pendingRole);
 
         $this->cancelRoleChange();
-        Flux::toast(variant: 'success', text: 'Member role updated.');
+        $this->toastFromResult($result);
     }
 
     public function cancelRoleChange(): void
@@ -137,7 +140,7 @@ class TeamMemberManager extends Component
         $this->showRemoveMemberModal = true;
     }
 
-    public function confirmRemoveMember(): void
+    public function confirmRemoveMember(RemoveTeamMemberAction $removeTeamMember): void
     {
         Gate::authorize('manageMembers', team());
         abort_unless($this->pendingRemoveMembershipUuid, 422);
@@ -149,18 +152,10 @@ class TeamMemberManager extends Component
             return;
         }
 
-        $email = TeamInvitation::normalizeEmail((string) $membership->user?->email);
-
-        TeamInvitation::query()
-            ->active()
-            ->where('email', $email)
-            ->get()
-            ->each(fn (TeamInvitation $invitation) => $invitation->markRevoked(auth()->id(), ['reason' => 'member_removed']));
-
-        $membership->delete();
+        $result = $removeTeamMember->execute($membership, auth()->id());
 
         $this->cancelRemoveMember();
-        Flux::toast(variant: 'success', text: 'Member removed from team.');
+        $this->toastFromResult($result);
     }
 
     public function cancelRemoveMember(): void
@@ -170,7 +165,7 @@ class TeamMemberManager extends Component
         $this->pendingRemoveUserName = null;
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         $memberships = TeamMembership::query()
             ->with(['user', 'inviter'])
@@ -235,12 +230,14 @@ class TeamMemberManager extends Component
             ->map(fn (EloquentCollection $assignments) => $assignments
                 ->pluck('role')
                 ->filter()
+                ->sortBy('sort_order')
+                ->take(1)
                 ->values());
 
         $memberships->each(function (TeamMembership $membership) use ($rolesByUserId): void {
             $membership->setRelation(
                 'roles',
-                $rolesByUserId->get($membership->user_id, new EloquentCollection())
+                $rolesByUserId->get($membership->user_id, new EloquentCollection)
             );
         });
     }

@@ -100,7 +100,7 @@ class SystemAccessSynchronizer
     }
 
     /**
-     * @param array<string, mixed> $roleConfig
+     * @param  array<string, mixed>  $roleConfig
      * @return array<int, string>
      */
     protected function resolveRolePermissionCodes(array $roleConfig): array

@@ -1,65 +1,62 @@
 <div>
     <flux:modal wire:model="isOpen" flyout variant="floating" class="space-y-6">
-        <div class="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-            <div class="border-b border-zinc-200 bg-gradient-to-br from-white via-zinc-50 to-emerald-50/60 p-6 dark:border-zinc-800 dark:from-zinc-950 dark:via-zinc-950 dark:to-emerald-950/20">
-                <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="max-w-2xl">
-                        <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
-                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                            Team access control
-                        </div>
-                        <flux:heading size="lg">Roles</flux:heading>
-                        <flux:subheading class="mt-2">
-                            System roles stay locked. Team roles can be created, refined and cleaned up here.
-                        </flux:subheading>
-                    </div>
+        <div class="flex items-center justify-between gap-4 pt-6 pe-12">
+            <flux:heading size="lg">Roles</flux:heading>
+            <flux:button wire:click="createRole" variant="primary">New role</flux:button>
+        </div>
 
-                    <div class="flex shrink-0 items-center gap-3">
-                        <div class="rounded-2xl border border-zinc-200 bg-white/90 px-4 py-3 text-right shadow-xs dark:border-zinc-800 dark:bg-zinc-900/90">
-                            <div class="text-xs uppercase tracking-[0.18em] text-zinc-400">Visible roles</div>
-                            <div class="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">{{ $roles->count() }}</div>
-                        </div>
-                        <flux:button wire:click="createRole" variant="primary">New role</flux:button>
-                    </div>
-                </div>
-            </div>
+        <div class="overflow-hidden">
+            <flux:table>
+                <flux:table.columns>
+                    <flux:table.column>Name</flux:table.column>
+                    <flux:table.column>Scope</flux:table.column>
+                    <flux:table.column>Permissions</flux:table.column>
+                    <flux:table.column></flux:table.column>
+                </flux:table.columns>
 
-            <div class="space-y-3 bg-zinc-50/80 p-4 dark:bg-zinc-950/70">
-                @foreach ($roles as $role)
-                    <div class="group rounded-[1.6rem] border border-zinc-200 bg-white p-4 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                            <div class="min-w-0">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <div class="truncate text-base font-semibold text-zinc-900 dark:text-white">{{ $role->name }}</div>
-                                    @if ($role->isGlobal())
-                                        <flux:badge color="zinc">System</flux:badge>
-                                    @else
-                                        <flux:badge color="emerald">Team</flux:badge>
-                                    @endif
-                                </div>
-
-                                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                                    <span class="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                                        {{ $role->slug }}
-                                    </span>
-                                    <span class="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                                        {{ $role->permission_items_count }} permissions
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                @unless ($role->isGlobal())
-                                    <flux:button wire:click="editRole('{{ $role->uuid }}')" variant="ghost" size="sm">Edit</flux:button>
-                                    <flux:button wire:click="confirmDelete('{{ $role->uuid }}')" variant="danger" size="sm">Delete</flux:button>
+                <flux:table.rows>
+                    @foreach ($roles as $role)
+                        <flux:table.row>
+                            <flux:table.cell variant="strong">{{ $role->name }}</flux:table.cell>
+                            <flux:table.cell>
+                                @if ($role->isGlobal())
+                                    <flux:badge color="zinc" size="sm" inset="top bottom">System</flux:badge>
                                 @else
-                                    <div class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Read-only</div>
-                                @endunless
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
+                                    <flux:badge color="emerald" size="sm" inset="top bottom">Team</flux:badge>
+                                @endif
+                            </flux:table.cell>
+                            <flux:table.cell>{{ $role->permission_items_count }}</flux:table.cell>
+                            <flux:table.cell>
+                                <div class="flex justify-end gap-2">
+                                    <flux:dropdown position="bottom" align="end">
+                                        <flux:button
+                                            variant="ghost"
+                                            size="sm"
+                                            icon:trailing="ellipsis-horizontal"
+                                            aria-label="Role actions"
+                                        />
+
+                                        <flux:menu>
+                                            @if ($role->isGlobal())
+                                                <flux:menu.item icon="eye" wire:click="viewRole('{{ $role->uuid }}')">
+                                                    View
+                                                </flux:menu.item>
+                                            @else
+                                                <flux:menu.item icon="pencil-square" wire:click="editRole('{{ $role->uuid }}')">
+                                                    Edit
+                                                </flux:menu.item>
+                                                <flux:menu.item icon="trash" variant="danger" wire:click="confirmDelete('{{ $role->uuid }}')">
+                                                    Delete
+                                                </flux:menu.item>
+                                            @endif
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                </div>
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
         </div>
     </flux:modal>
 
@@ -68,8 +65,15 @@
             <div class="border-b border-zinc-200 bg-white/95 p-6 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90" x-data="{ selected: @entangle('selectedPermissionItems').live }">
                 <div class="mx-auto flex w-full max-w-7xl items-start justify-between gap-4">
                     <div>
-                        <flux:heading size="lg">{{ $roleUuid ? 'Edit role' : 'Create role' }}</flux:heading>
-                        <flux:subheading class="mt-1">Give the role a clear name, then choose what it can do.</flux:subheading>
+                        <flux:heading size="lg">
+                            @if ($isReadOnly)
+                                View role
+                            @elseif ($roleUuid)
+                                Edit role
+                            @else
+                                Create role
+                            @endif
+                        </flux:heading>
                     </div>
                     <div class="shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                         <span x-text="(selected?.length ?? 0) + ' selected'"></span>
@@ -83,20 +87,28 @@
                         <flux:card class="space-y-6 rounded-3xl border border-zinc-200 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
                             <div>
                                 <flux:heading size="sm">Basics</flux:heading>
-                                <flux:subheading class="mt-1">Slug is generated automatically from the role name.</flux:subheading>
                             </div>
 
-                            <flux:input wire:model="name" label="Name" placeholder="Editor, Support, Billing..." clearable />
+                            <flux:input
+                                wire:model="name"
+                                label="Name"
+                                placeholder="Editor, Support, Billing..."
+                                clearable
+                                :disabled="$isReadOnly"
+                            />
 
                             <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
-                                Use clear, operational names. Permissions stay editable after creation.
+                                @if ($isReadOnly)
+                                    Read-only
+                                @else
+                                    Editable
+                                @endif
                             </div>
                         </flux:card>
 
                         <flux:card class="space-y-4 rounded-3xl border border-zinc-200 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
                             <div>
                                 <flux:heading size="sm">Permission tools</flux:heading>
-                                <flux:subheading class="mt-1">Filter the matrix and speed up repetitive selection.</flux:subheading>
                             </div>
 
                             <flux:input
@@ -106,11 +118,13 @@
                                 clearable
                             />
 
-                            <div class="grid gap-2">
-                                <flux:button type="button" wire:click="selectAllFilteredPermissions" variant="ghost">Select filtered</flux:button>
-                                <flux:button type="button" wire:click="selectAllPermissions" variant="ghost">Select all</flux:button>
-                                <flux:button type="button" wire:click="clearPermissions" variant="ghost">Clear selection</flux:button>
-                            </div>
+                            @unless ($isReadOnly)
+                                <div class="grid gap-2">
+                                    <flux:button type="button" wire:click="selectAllFilteredPermissions" variant="ghost">Select filtered</flux:button>
+                                    <flux:button type="button" wire:click="selectAllPermissions" variant="ghost">Select all</flux:button>
+                                    <flux:button type="button" wire:click="clearPermissions" variant="ghost">Clear selection</flux:button>
+                                </div>
+                            @endunless
                         </flux:card>
                     </div>
 
@@ -133,7 +147,7 @@
                                     <div class="grid gap-2 md:grid-cols-2">
                                         @foreach ($permissionGroup->items as $item)
                                             <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/50 p-3 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:border-zinc-700 dark:hover:bg-zinc-800">
-                                                <flux:checkbox wire:model="selectedPermissionItems" value="{{ $item->uuid }}" class="mt-0.5" />
+                                                <flux:checkbox wire:model="selectedPermissionItems" value="{{ $item->uuid }}" class="mt-0.5" :disabled="$isReadOnly" />
                                                 <div class="min-w-0">
                                                     <div class="truncate text-sm font-medium text-zinc-900 dark:text-white">{{ $item->label ?: $item->name }}</div>
                                                     <div class="truncate text-xs text-zinc-500">{{ $item->code }}</div>
@@ -155,7 +169,9 @@
             <div class="border-t border-zinc-200 bg-white/95 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
                 <div class="mx-auto flex w-full max-w-7xl items-center justify-end gap-2">
                     <flux:button type="button" wire:click="$set('isFormOpen', false)" variant="ghost">Cancel</flux:button>
-                    <flux:button type="submit" variant="primary">Save role</flux:button>
+                    @unless ($isReadOnly)
+                        <flux:button type="submit" variant="primary">Save role</flux:button>
+                    @endunless
                 </div>
             </div>
         </form>

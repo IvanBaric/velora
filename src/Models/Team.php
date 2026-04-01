@@ -24,10 +24,7 @@ class Team extends Model
 
     public function users(): BelongsToMany
     {
-        /** @var class-string<Model> $userModel */
-        $userModel = (string) config('velora.models.user');
-
-        return $this->belongsToMany($userModel, 'team_memberships', 'team_id', 'user_id')
+        return $this->belongsToMany(velora_user_model(), 'team_memberships', 'team_id', 'user_id')
             ->withPivot(['status', 'is_owner', 'joined_at', 'last_seen_at'])
             ->withTimestamps();
     }

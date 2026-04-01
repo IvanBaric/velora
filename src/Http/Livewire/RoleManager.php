@@ -7,19 +7,27 @@ namespace IvanBaric\Velora\Http\Livewire;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use IvanBaric\Velora\Actions\DeleteRoleAction;
+use IvanBaric\Velora\Actions\SaveRoleAction;
+use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
 use IvanBaric\Velora\Models\Permission;
 use IvanBaric\Velora\Models\PermissionItem;
 use IvanBaric\Velora\Models\Role;
+use IvanBaric\Velora\Support\ActionResult;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class RoleManager extends Component
 {
+    use InteractsWithActionResults;
+
     public bool $isOpen = false;
 
     public bool $isFormOpen = false;
 
     public bool $isDeleteConfirmOpen = false;
+
+    public bool $isReadOnly = false;
 
     public ?string $roleUuid = null;
 
@@ -56,18 +64,24 @@ class RoleManager extends Component
     public function editRole(string $roleUuid): void
     {
         $role = $this->resolveRoleByUuid($roleUuid);
-
-        abort_if($role->isGlobal(), 403);
-
-        $this->roleUuid = (string) $role->uuid;
-        $this->name = (string) $role->name;
-        $this->slug = (string) $role->slug;
-        $this->selectedPermissionItems = $role->permissionItems()->pluck('permission_items.uuid')->map(fn ($uuid) => (string) $uuid)->all();
-        $this->isFormOpen = true;
+        $this->openRoleForm($role, $role->isGlobal() || $role->is_locked);
     }
 
-    public function save(): void
+    public function viewRole(string $roleUuid): void
     {
+        $role = $this->resolveRoleByUuid($roleUuid);
+
+        $this->openRoleForm($role, true);
+    }
+
+    public function save(SaveRoleAction $saveRole): void
+    {
+        if ($this->isReadOnly) {
+            $this->toastFromResult(ActionResult::error('This role is read-only.'));
+
+            return;
+        }
+
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'selectedPermissionItems' => ['array'],
@@ -88,19 +102,12 @@ class RoleManager extends Component
             'is_active' => true,
         ];
 
-        if ($this->roleUuid) {
-            $role = $this->resolveRoleByUuid($this->roleUuid);
-            abort_if($role->isGlobal() || $role->is_locked, 403);
-            $role->update($payload);
-        } else {
-            $role = Role::query()->create($payload);
-        }
-
-        $role->permissionItems()->sync($this->resolvePermissionItemIds($this->selectedPermissionItems));
+        $role = $this->roleUuid ? $this->resolveRoleByUuid($this->roleUuid) : null;
+        $result = $saveRole->execute($role, $payload, $this->resolvePermissionItemIds($this->selectedPermissionItems));
 
         $this->resetForm();
         $this->isFormOpen = false;
-        $this->dispatch('notify', 'Role saved.');
+        $this->toastFromResult($result);
     }
 
     public function clearPermissions(): void
@@ -129,30 +136,24 @@ class RoleManager extends Component
         $this->isDeleteConfirmOpen = true;
     }
 
-    public function deleteRole(): void
+    public function deleteRole(DeleteRoleAction $deleteRole): void
     {
         $role = $this->resolveRoleByUuid((string) $this->roleUuid);
-        abort_if($role->isGlobal() || $role->is_locked, 403);
+        $replacementRole = $this->replacementRoleUuid
+            ? $this->resolveRoleByUuid((string) $this->replacementRoleUuid)
+            : null;
+        $result = $deleteRole->execute($role, $replacementRole);
 
-        $userCount = $role->userRoles()->count();
-        if ($userCount > 0 && ! $this->replacementRoleUuid) {
-            $this->addError('replacementRoleUuid', 'Select a replacement role.');
+        if (! $result->success) {
+            $this->addError('replacementRoleUuid', $result->message);
 
             return;
         }
 
-        if ($userCount > 0) {
-            $replacementRoleId = $this->resolveRoleByUuid((string) $this->replacementRoleUuid)->getKey();
-            $role->userRoles()->update(['role_id' => $replacementRoleId]);
-        }
-
-        $role->permissionItems()->detach();
-        $role->delete();
-
         $this->isDeleteConfirmOpen = false;
         $this->pendingDeleteUserCount = 0;
         $this->resetForm();
-        $this->dispatch('notify', 'Role deleted.');
+        $this->toastFromResult($result);
     }
 
     public function getRolesProperty(): Collection
@@ -226,6 +227,7 @@ class RoleManager extends Component
         $this->roleUuid = null;
         $this->name = '';
         $this->slug = '';
+        $this->isReadOnly = false;
         $this->selectedPermissionItems = [];
         $this->replacementRoleUuid = null;
         $this->pendingDeleteUserCount = 0;
@@ -303,5 +305,19 @@ class RoleManager extends Component
         }
 
         return $candidate;
+    }
+
+    protected function openRoleForm(Role $role, bool $readOnly): void
+    {
+        $this->resetForm();
+        $this->roleUuid = (string) $role->uuid;
+        $this->name = (string) $role->name;
+        $this->slug = (string) $role->slug;
+        $this->isReadOnly = $readOnly;
+        $this->selectedPermissionItems = $role->permissionItems()
+            ->pluck('permission_items.uuid')
+            ->map(fn ($uuid) => (string) $uuid)
+            ->all();
+        $this->isFormOpen = true;
     }
 }

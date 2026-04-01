@@ -15,6 +15,5 @@ class TeamSwitched
 
     public function __construct(
         public Team $team,
-    ) {
-    }
+    ) {}
 }
