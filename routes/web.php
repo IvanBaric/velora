@@ -14,11 +14,8 @@ $teamBasePath = '/'.trim((string) config('velora.routes.prefix', 'app'), '/')
 
 if (class_exists(Livewire::class)) {
     Route::middleware(config('velora.routes.authenticated_middleware'))->group(function () use ($teamBasePath): void {
-        Route::middleware('permission:users.view')->group(function () use ($teamBasePath): void {
-            Route::get($teamBasePath, TeamSettings::class)->name('teams.settings');
-            Route::get($teamBasePath.'/create', TeamCreate::class)->name('teams.create');
-        });
-
+        Route::get($teamBasePath, TeamSettings::class)->middleware('permission:teams.view')->name('teams.settings');
+        Route::get($teamBasePath.'/create', TeamCreate::class)->middleware('permission:teams.create')->name('teams.create');
         Route::get($teamBasePath.'/switch/{team}', TeamSwitchController::class)->name('teams.switch');
     });
 }

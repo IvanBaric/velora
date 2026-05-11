@@ -255,7 +255,7 @@ $user->membershipForCurrentTeam();
 ```php
 $user->assignRole('admin');
 $user->removeRole('admin');
-$user->syncRoles(['editor']); // zero or one role only
+$user->syncRoles(['member']); // zero or one role only
 
 $user->hasRole('admin');
 $user->hasPermission('teams.manage_members');
@@ -412,7 +412,7 @@ Example:
 
 ## Notes
 
-- `sync_defaults_on_boot` is convenient in development, but some teams may prefer turning it off in production and managing seed/sync explicitly.
+- `sync_defaults_on_boot` is convenient in development. By default it is disabled in production unless you explicitly set `VELORA_SYNC_DEFAULTS_ON_BOOT=true`.
 - If you replace the current-team resolver, bind your own implementation for `IvanBaric\Velora\Support\TeamContextResolver`.
 
 ## License
