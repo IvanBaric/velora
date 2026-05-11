@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Actions;
 
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\DB;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Models\TeamMembership;
 
@@ -14,12 +15,16 @@ class CreatePersonalTeam
     {
         $user = $event->user;
 
-        $team = Team::query()->create([
-            'name' => "{$user->name}'s Team",
-        ]);
+        $team = DB::transaction(function () use ($user): Team {
+            $team = Team::query()->create([
+                'name' => "{$user->name}'s Team",
+            ]);
 
-        $membership = TeamMembership::ensureForUser($user, $team, true);
-        $membership->assignRole('admin', $team);
+            $membership = TeamMembership::ensureForUser($user, $team, true);
+            $membership->assignRole('admin', $team);
+
+            return $team;
+        });
 
         if (function_exists('set_current_team')) {
             set_current_team($team);

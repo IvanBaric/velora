@@ -65,7 +65,7 @@ return [
 
     'create_personal_team_on_registration' => env('VELORA_CREATE_PERSONAL_TEAM_ON_REGISTRATION', true),
 
-    'sync_defaults_on_boot' => env('VELORA_SYNC_DEFAULTS_ON_BOOT', true),
+    'sync_defaults_on_boot' => env('VELORA_SYNC_DEFAULTS_ON_BOOT', env('APP_ENV') !== 'production'),
 
     'roles' => [
         'hidden' => [

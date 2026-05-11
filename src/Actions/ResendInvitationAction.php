@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Actions;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use IvanBaric\Velora\Data\InvitationDispatchData;
@@ -15,7 +16,12 @@ final class ResendInvitationAction
 {
     public function execute(TeamInvitation $invitation, ?int $actorUserId = null, ?string $roleSlug = null): InvitationDispatchData
     {
-        $plainToken = $invitation->prepareForResend($actorUserId, $roleSlug);
+        [$invitation, $plainToken] = DB::transaction(function () use ($invitation, $actorUserId, $roleSlug): array {
+            $plainToken = $invitation->prepareForResend($actorUserId, $roleSlug);
+
+            return [$invitation->fresh() ?? $invitation, $plainToken];
+        });
+
         $roleLabel = $this->resolveRoleLabel($invitation);
         $url = URL::temporarySignedRoute(
             'teams.invitation.accept',

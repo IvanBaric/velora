@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Actions;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
@@ -23,25 +24,28 @@ final class SendInvitationAction
         $this->ensureUserIsNotAlreadyMember($normalizedEmail, $teamId);
         $this->ensureRoleExists($roleSlug, $teamId);
 
-        $existing = TeamInvitation::query()
-            ->where('team_id', $teamId)
-            ->where('email', $normalizedEmail)
-            ->first();
+        [$invitation, $plainToken] = DB::transaction(function () use ($normalizedEmail, $roleSlug, $teamId, $actorUserId): array {
+            $existing = TeamInvitation::query()
+                ->where('team_id', $teamId)
+                ->where('email', $normalizedEmail)
+                ->first();
 
-        if ($existing?->status === TeamInvitationStatus::Pending && ! $existing->isExpired()) {
-            throw ValidationException::withMessages([
-                'email' => 'An active invitation already exists for this email.',
-            ]);
-        }
+            if ($existing?->status === TeamInvitationStatus::Pending && ! $existing->isExpired()) {
+                throw ValidationException::withMessages([
+                    'email' => 'An active invitation already exists for this email.',
+                ]);
+            }
 
-        if ($existing && $existing->isExpired()) {
-            $existing->markExpired($actorUserId);
-        }
+            if ($existing && $existing->isExpired()) {
+                $existing->markExpired($actorUserId);
+            }
 
-        if ($existing) {
-            $plainToken = $existing->prepareForResend($actorUserId, $roleSlug);
-            $invitation = $existing->fresh() ?? $existing;
-        } else {
+            if ($existing) {
+                $plainToken = $existing->prepareForResend($actorUserId, $roleSlug);
+
+                return [$existing->fresh() ?? $existing, $plainToken];
+            }
+
             /** @var TeamInvitation $invitation */
             $invitation = TeamInvitation::query()->create([
                 'team_id' => $teamId,
@@ -49,8 +53,11 @@ final class SendInvitationAction
                 'role_slug' => $roleSlug,
                 'invited_by_user_id' => $actorUserId,
             ]);
+
             $plainToken = $invitation->issueToken();
-        }
+
+            return [$invitation->fresh() ?? $invitation, $plainToken];
+        });
 
         $roleLabel = $this->resolveRoleLabel($invitation, $teamId);
         $url = URL::temporarySignedRoute(

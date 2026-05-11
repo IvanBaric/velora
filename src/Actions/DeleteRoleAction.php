@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Actions;
 
+use Illuminate\Support\Facades\DB;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Support\ActionResult;
 
@@ -20,12 +21,14 @@ final class DeleteRoleAction
             return ActionResult::error('Select a replacement role.');
         }
 
-        if ($userCount > 0) {
-            $role->userRoles()->update(['role_id' => $replacementRole?->getKey()]);
-        }
+        DB::transaction(function () use ($role, $replacementRole, $userCount): void {
+            if ($userCount > 0) {
+                $role->userRoles()->update(['role_id' => $replacementRole?->getKey()]);
+            }
 
-        $role->permissionItems()->detach();
-        $role->delete();
+            $role->permissionItems()->detach();
+            $role->delete();
+        });
 
         return ActionResult::success('Role deleted.');
     }

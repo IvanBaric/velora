@@ -1,7 +1,9 @@
 @if (($variant ?? 'dropdown') === 'menu')
     <div class="contents">
         @foreach ($allTeams as $loopTeam)
-            @php($isCurrentTeam = $currentTeam->uuid === $loopTeam->uuid)
+            @php
+                $isCurrentTeam = $currentTeam->uuid === $loopTeam->uuid;
+            @endphp
 
             @if ($isCurrentTeam)
                 <flux:menu.item disabled>
@@ -30,7 +32,9 @@
         </flux:button>
         <flux:menu class="rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             @foreach ($allTeams as $loopTeam)
-                @php($isCurrentTeam = $currentTeam->uuid === $loopTeam->uuid)
+                @php
+                    $isCurrentTeam = $currentTeam->uuid === $loopTeam->uuid;
+                @endphp
 
                 @if ($isCurrentTeam)
                     <flux:menu.item disabled>

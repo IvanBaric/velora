@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Actions;
 
+use Illuminate\Support\Facades\DB;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Support\ActionResult;
 
@@ -15,7 +16,9 @@ final class RevokeInvitationAction
             return ActionResult::error('Accepted invitations cannot be revoked.');
         }
 
-        $invitation->markRevoked($actorUserId, $meta + ['reason' => 'manual_revoke']);
+        DB::transaction(function () use ($invitation, $actorUserId, $meta): void {
+            $invitation->markRevoked($actorUserId, $meta + ['reason' => 'manual_revoke']);
+        });
 
         return ActionResult::success('Invitation revoked.');
     }
