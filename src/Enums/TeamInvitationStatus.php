@@ -34,10 +34,10 @@ enum TeamInvitationStatus: string
     public function tooltip(): string
     {
         return match ($this) {
-            self::Pending => 'Invitation is pending.',
-            self::Accepted => 'Invitation was accepted.',
-            self::Revoked => 'Invitation was revoked.',
-            self::Expired => 'Invitation expired.',
+            self::Pending => 'Pozivnica čeka odgovor.',
+            self::Accepted => 'Pozivnica je prihvaćena.',
+            self::Revoked => 'Pozivnica je opozvana.',
+            self::Expired => 'Pozivnica je istekla.',
         };
     }
 }

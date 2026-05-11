@@ -92,7 +92,7 @@ class TeamInvitationForm extends Component
             $seconds = RateLimiter::availableIn($key);
 
             throw ValidationException::withMessages([
-                'email' => "Too many invitation actions. Try again in {$seconds} seconds.",
+                'email' => "Previše akcija s pozivnicama. Pokušajte ponovno za {$seconds} sekundi.",
             ]);
         }
 

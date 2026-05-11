@@ -44,21 +44,21 @@ final class PreviewInvitationAction
                 $invitation->markExpired();
             }
 
-            throw new InvalidInvitation('Invitation link has expired or is invalid.');
+            throw new InvalidInvitation('Link pozivnice je istekao ili nije valjan.');
         }
 
         if ($invitation->status === TeamInvitationStatus::Revoked) {
-            throw new InvalidInvitation('This invitation has been revoked.');
+            throw new InvalidInvitation('Ova pozivnica je opozvana.');
         }
 
         if ($invitation->status === TeamInvitationStatus::Accepted) {
-            throw new InvalidInvitation('This invitation has already been used.');
+            throw new InvalidInvitation('Ova pozivnica je već iskorištena.');
         }
 
         if ($invitation->isExpired()) {
             $invitation->markExpired();
 
-            throw new InvalidInvitation('This invitation has expired.');
+            throw new InvalidInvitation('Ova pozivnica je istekla.');
         }
 
         return $invitation;
@@ -69,7 +69,7 @@ final class PreviewInvitationAction
         $rateKey = sprintf('velora:invitation:preview:%s:%s', hash('sha256', $token), (string) $ipAddress);
 
         if (RateLimiter::tooManyAttempts($rateKey, 60)) {
-            throw new InvalidInvitation('Too many invitation preview attempts.', 429);
+            throw new InvalidInvitation('Previše pokušaja pregleda pozivnice.', 429);
         }
 
         RateLimiter::hit($rateKey, 60);

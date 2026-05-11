@@ -13,6 +13,6 @@ final class UpdateTeamNameAction
     {
         $team->update(['name' => $name]);
 
-        return ActionResult::success('Team name updated.');
+        return ActionResult::success('Naziv tima je ažuriran.');
     }
 }

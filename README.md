@@ -144,7 +144,7 @@ Key options in `config/velora.php`:
 - `velora.current_team.system_team_name`
 - `velora.session_key`
 - `velora.create_personal_team_on_registration`
-- `velora.sync_defaults_on_boot` (defaults to enabled outside production)
+- `velora.sync_defaults_on_boot`
 - `velora.invitations.expires_after_days`
 - `velora.invitations.accept_redirect_route`
 - `velora.routes.authenticated_middleware`
@@ -412,7 +412,7 @@ Example:
 
 ## Notes
 
-- `sync_defaults_on_boot` is convenient in development. By default it is disabled in production unless you explicitly set `VELORA_SYNC_DEFAULTS_ON_BOOT=true`.
+- `sync_defaults_on_boot` is convenient in development, but some teams may prefer turning it off in production and managing seed/sync explicitly.
 - If you replace the current-team resolver, bind your own implementation for `IvanBaric\Velora\Support\TeamContextResolver`.
 
 ## License

@@ -32,7 +32,7 @@ final class SendInvitationAction
 
             if ($existing?->status === TeamInvitationStatus::Pending && ! $existing->isExpired()) {
                 throw ValidationException::withMessages([
-                    'email' => 'An active invitation already exists for this email.',
+                    'email' => 'Za ovaj email već postoji aktivna pozivnica.',
                 ]);
             }
 
@@ -73,7 +73,7 @@ final class SendInvitationAction
             plainToken: $plainToken,
             url: $url,
             roleLabel: $roleLabel,
-            message: 'Invitation sent to '.$invitation->email.'.',
+            message: 'Pozivnica je poslana na '.$invitation->email.'.',
         );
     }
 
@@ -93,7 +93,7 @@ final class SendInvitationAction
 
         if ($isMember) {
             throw ValidationException::withMessages([
-                'email' => 'User is already a team member.',
+                'email' => 'Korisnik je već član tima.',
             ]);
         }
     }
@@ -108,7 +108,7 @@ final class SendInvitationAction
 
         if (! $exists) {
             throw ValidationException::withMessages([
-                'roleSlug' => 'Selected role is not assignable.',
+                'roleSlug' => 'Odabranu ulogu nije moguće dodijeliti.',
             ]);
         }
     }

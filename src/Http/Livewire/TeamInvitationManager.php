@@ -103,7 +103,7 @@ class TeamInvitationManager extends Component
 
         if ($isMember) {
             throw ValidationException::withMessages([
-                'invitations' => 'User is already a team member.',
+                'invitations' => 'Korisnik je već član tima.',
             ]);
         }
     }
@@ -116,7 +116,7 @@ class TeamInvitationManager extends Component
             $seconds = RateLimiter::availableIn($key);
 
             throw ValidationException::withMessages([
-                'invitations' => "Too many invitation actions. Try again in {$seconds} seconds.",
+                'invitations' => "Previše akcija s pozivnicama. Pokušajte ponovno za {$seconds} sekundi.",
             ]);
         }
 

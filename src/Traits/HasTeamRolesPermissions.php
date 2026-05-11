@@ -50,18 +50,18 @@ trait HasTeamRolesPermissions
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
-            return OperationResult::failure('Role not found for this team context.', code: 'role_not_found');
+            return OperationResult::failure('Uloga nije pronađena za ovaj tim.', code: 'role_not_found');
         }
 
         if (! $this->roleAssignable($resolvedRole)) {
-            return OperationResult::failure('Role is not assignable.', code: 'role_not_assignable');
+            return OperationResult::failure('Ovu ulogu nije moguće dodijeliti.', code: 'role_not_assignable');
         }
 
         $userId = $this->resolveRoleOwnerId();
         $existing = $this->currentRoleAssignment($userId, $teamId);
 
         if ($existing && $this->assignmentMatchesRole($existing, $resolvedRole)) {
-            return OperationResult::success('Role is already assigned.', ['user_role_id' => $existing->getKey()], 'already_assigned');
+            return OperationResult::success('Uloga je već dodijeljena.', ['user_role_id' => $existing->getKey()], 'already_assigned');
         }
 
         $userRole = $this->persistSingleRoleAssignment(
@@ -74,7 +74,7 @@ trait HasTeamRolesPermissions
         event(new RoleAssigned($userRole, $resolvedRole));
 
         return OperationResult::success(
-            $existing ? 'Role updated successfully.' : 'Role assigned successfully.',
+            $existing ? 'Uloga je uspješno ažurirana.' : 'Uloga je uspješno dodijeljena.',
             ['user_role_id' => $userRole->getKey()],
         );
     }
@@ -84,7 +84,7 @@ trait HasTeamRolesPermissions
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
-            return OperationResult::failure('Role not found for this team context.', code: 'role_not_found');
+            return OperationResult::failure('Uloga nije pronađena za ovaj tim.', code: 'role_not_found');
         }
 
         $deleted = UserRole::query()
@@ -94,10 +94,10 @@ trait HasTeamRolesPermissions
             ->delete();
 
         if ($deleted === 0) {
-            return OperationResult::success('Role was not assigned.', code: 'not_assigned');
+            return OperationResult::success('Uloga nije bila dodijeljena.', code: 'not_assigned');
         }
 
-        return OperationResult::success('Role removed successfully.');
+        return OperationResult::success('Uloga je uspješno uklonjena.');
     }
 
     public function syncRoles(array|Collection|EloquentCollection $roles, Team|int|null $team = null, ?int $assignedByUserId = null): OperationResult
@@ -105,7 +105,7 @@ trait HasTeamRolesPermissions
         $teamId = $this->resolveTeamId($team);
         $resolvedRoles = $this->resolveRolesCollection($roles, $teamId);
         if ($resolvedRoles->count() > 1) {
-            return OperationResult::failure('Only one role can be assigned per team.', code: 'multiple_roles_not_supported');
+            return OperationResult::failure('Po timu je moguće dodijeliti samo jednu ulogu.', code: 'multiple_roles_not_supported');
         }
 
         $userId = $this->resolveRoleOwnerId();
@@ -113,7 +113,7 @@ trait HasTeamRolesPermissions
 
         if ($resolvedRole instanceof Role) {
             if (! $this->roleAssignable($resolvedRole)) {
-                return OperationResult::failure('Role is not assignable.', code: 'role_not_assignable');
+                return OperationResult::failure('Ovu ulogu nije moguće dodijeliti.', code: 'role_not_assignable');
             }
 
             $existing = $this->currentRoleAssignment($userId, $teamId);
@@ -141,7 +141,7 @@ trait HasTeamRolesPermissions
             event(new MembershipRoleSynced($this, $roleSlugs));
         }
 
-        return OperationResult::success('Roles synced successfully.');
+        return OperationResult::success('Uloge su uspješno usklađene.');
     }
 
     public function hasRole(int|string|Role $role, Team|int|null $team = null): bool

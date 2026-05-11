@@ -101,7 +101,7 @@ final class TeamInvitationService
 
         if (! Hash::check((string) $request->string('password'), (string) $existingUser->getAttribute('password'))) {
             throw ValidationException::withMessages([
-                'password' => 'Password is not correct.',
+                'password' => 'Lozinka nije točna.',
             ]);
         }
 
@@ -119,7 +119,7 @@ final class TeamInvitationService
             $seconds = RateLimiter::availableIn($rateKey);
 
             throw ValidationException::withMessages([
-                'email' => "Too many attempts. Try again in {$seconds} seconds.",
+                'email' => "Previše pokušaja. Pokušajte ponovno za {$seconds} sekundi.",
             ]);
         }
 

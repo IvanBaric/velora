@@ -107,8 +107,8 @@ class TeamMembership extends Model
     {
         if (! $this->canActivate()) {
             return ActionResult::error($this->status === TeamMembershipStatus::Active
-                ? 'Membership is already active.'
-                : 'Revoked memberships cannot be reactivated.');
+                ? 'Članstvo je već aktivno.'
+                : 'Opozvano članstvo nije moguće ponovno aktivirati.');
         }
 
         $this->forceFill([
@@ -119,13 +119,13 @@ class TeamMembership extends Model
         $this->recordEvent('activated', $actorUserId);
         event(new MembershipActivated($this));
 
-        return ActionResult::success('Membership activated.');
+        return ActionResult::success('Članstvo je aktivirano.');
     }
 
     public function suspend(?int $actorUserId = null): ActionResult
     {
         if (! $this->canSuspend()) {
-            return ActionResult::error('Membership cannot be suspended from its current status.');
+            return ActionResult::error('Članstvo nije moguće suspendirati iz trenutnog statusa.');
         }
 
         $this->forceFill([
@@ -135,13 +135,13 @@ class TeamMembership extends Model
         $this->recordEvent('suspended', $actorUserId);
         event(new MembershipSuspended($this));
 
-        return ActionResult::success('Membership suspended.');
+        return ActionResult::success('Članstvo je suspendirano.');
     }
 
     public function revoke(?int $actorUserId = null): ActionResult
     {
         if (! $this->canRevoke()) {
-            return ActionResult::error('Membership is already revoked.');
+            return ActionResult::error('Članstvo je već opozvano.');
         }
 
         $this->forceFill([
@@ -151,7 +151,7 @@ class TeamMembership extends Model
         $this->recordEvent('revoked', $actorUserId);
         event(new MembershipRevoked($this));
 
-        return ActionResult::success('Membership revoked.');
+        return ActionResult::success('Članstvo je opozvano.');
     }
 
     public static function ensureForUser(Model $user, Team $team, bool $isOwner = false): self

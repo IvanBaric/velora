@@ -41,7 +41,7 @@ final class AcceptInvitationAction
             user: $user,
             invitation: $acceptedInvitation,
             membership: $membership,
-            message: 'You joined team '.$acceptedInvitation->team->name.'.',
+            message: 'Pridružili ste se timu '.$acceptedInvitation->team->name.'.',
         );
     }
 }

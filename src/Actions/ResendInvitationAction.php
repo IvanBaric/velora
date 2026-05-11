@@ -36,7 +36,7 @@ final class ResendInvitationAction
             plainToken: $plainToken,
             url: $url,
             roleLabel: $roleLabel,
-            message: 'Invitation resent to '.$invitation->email.'.',
+            message: 'Pozivnica je ponovno poslana na '.$invitation->email.'.',
         );
     }
 

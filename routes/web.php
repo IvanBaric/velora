@@ -7,18 +7,25 @@ use IvanBaric\Velora\Http\Controllers\TeamInvitationController;
 use IvanBaric\Velora\Http\Controllers\TeamSwitchController;
 use IvanBaric\Velora\Http\Livewire\TeamCreate;
 use IvanBaric\Velora\Http\Livewire\TeamSettings;
+use Livewire\Livewire;
 
-if (class_exists(\Livewire\Livewire::class)) {
-    Route::middleware(config('velora.routes.authenticated_middleware'))->group(function (): void {
-        Route::get('/app/team', TeamSettings::class)->name('teams.settings');
-        Route::get('/app/team/create', TeamCreate::class)->name('teams.create');
-        Route::get('/app/team/switch/{team}', TeamSwitchController::class)->name('teams.switch');
+$teamBasePath = '/'.trim((string) config('velora.routes.prefix', 'app'), '/')
+    .'/'.trim((string) config('velora.routes.team_segment', 'team'), '/');
+
+if (class_exists(Livewire::class)) {
+    Route::middleware(config('velora.routes.authenticated_middleware'))->group(function () use ($teamBasePath): void {
+        Route::middleware('permission:users.view')->group(function () use ($teamBasePath): void {
+            Route::get($teamBasePath, TeamSettings::class)->name('teams.settings');
+            Route::get($teamBasePath.'/create', TeamCreate::class)->name('teams.create');
+        });
+
+        Route::get($teamBasePath.'/switch/{team}', TeamSwitchController::class)->name('teams.switch');
     });
 }
 
 Route::middleware(config('velora.routes.public_middleware'))
     ->controller(TeamInvitationController::class)
-    ->group(function (): void {
-        Route::get('/app/team/invitation/{token}', 'show')->name('teams.invitation.accept');
-        Route::post('/app/team/invitation/{token}', 'store')->name('teams.invitation.accept.store');
+    ->group(function () use ($teamBasePath): void {
+        Route::get($teamBasePath.'/invitation/{token}', 'show')->name('teams.invitation.accept');
+        Route::post($teamBasePath.'/invitation/{token}', 'store')->name('teams.invitation.accept.store');
     });

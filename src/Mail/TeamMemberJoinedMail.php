@@ -25,7 +25,7 @@ class TeamMemberJoinedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New team member: '.$this->invitation->team->name,
+            subject: 'Novi član tima: '.$this->invitation->team->name,
         );
     }
 

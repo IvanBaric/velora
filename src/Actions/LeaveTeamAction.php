@@ -14,11 +14,11 @@ final class LeaveTeamAction
     public function execute(TeamMembership $membership, string $email, ?int $actorUserId = null): ActionResult
     {
         if ($membership->is_owner) {
-            return ActionResult::error('Team owner cannot leave the team this way.');
+            return ActionResult::error('Vlasnik tima ne može napustiti tim na ovaj način.');
         }
 
         if (! $membership->canRevoke()) {
-            return ActionResult::error('Membership is already revoked.');
+            return ActionResult::error('Članstvo je već opozvano.');
         }
 
         return DB::transaction(function () use ($membership, $email, $actorUserId): ActionResult {
@@ -32,7 +32,7 @@ final class LeaveTeamAction
             $result = $membership->revoke($actorUserId);
 
             return $result->success
-                ? ActionResult::success('You left the team.')
+                ? ActionResult::success('Napustili ste tim.')
                 : $result;
         });
     }

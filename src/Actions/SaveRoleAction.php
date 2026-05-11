@@ -18,7 +18,7 @@ final class SaveRoleAction
     {
         if ($role) {
             if ($role->isGlobal() || $role->is_locked) {
-                return ActionResult::error('This role cannot be edited.');
+                return ActionResult::error('Ovu ulogu nije moguće uređivati.');
             }
         }
 
@@ -34,6 +34,6 @@ final class SaveRoleAction
             $role->permissionItems()->sync($permissionItemIds);
         });
 
-        return ActionResult::success('Role saved.');
+        return ActionResult::success('Uloga je spremljena.');
     }
 }

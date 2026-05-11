@@ -77,7 +77,7 @@ class RoleManager extends Component
     public function save(SaveRoleAction $saveRole): void
     {
         if ($this->isReadOnly) {
-            $this->toastFromResult(ActionResult::error('This role is read-only.'));
+            $this->toastFromResult(ActionResult::error('Ova uloga je samo za čitanje.'));
 
             return;
         }

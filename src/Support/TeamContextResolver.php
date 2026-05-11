@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Support;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use IvanBaric\Velora\Actions\CreatePersonalTeam;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Events\TeamSwitched;
 use IvanBaric\Velora\Exceptions\UnableToResolveCurrentTeam;
@@ -65,7 +67,11 @@ class TeamContextResolver
             return $team;
         }
 
-        return $this->resolveFromLegacyUserTeam($user);
+        if ($team = $this->resolveFromLegacyUserTeam($user)) {
+            return $team;
+        }
+
+        return $this->resolveMissingPersonalTeam($user);
     }
 
     protected function resolveFromSessionMembership(mixed $user): ?Team
@@ -129,6 +135,18 @@ class TeamContextResolver
         return Team::query()->find($teamId);
     }
 
+    protected function resolveMissingPersonalTeam(mixed $user): ?Team
+    {
+        if (! config('velora.create_personal_team_when_missing', true) || ! $user instanceof Model) {
+            return null;
+        }
+
+        $team = app(CreatePersonalTeam::class)->execute($user);
+        $this->storeCurrentTeamId((int) $team->getKey());
+
+        return $team;
+    }
+
     protected function userHasMembershipForTeam(mixed $user, int $teamId): bool
     {
         if (method_exists($user, 'memberships')) {
@@ -187,8 +205,8 @@ class TeamContextResolver
             'first_team' => $this->resolveFirstTeamFallback(),
             'create_default_team' => $this->resolveDefaultTeamFallback(),
             'system_team_fallback' => $this->resolveSystemTeamFallback(),
-            'strict' => throw new UnableToResolveCurrentTeam('Unable to resolve current team using strict strategy.'),
-            default => throw new UnableToResolveCurrentTeam('Unsupported current team strategy ['.$this->strategy().'].'),
+            'strict' => throw new UnableToResolveCurrentTeam('Nije moguće odrediti trenutni tim koristeći strict strategiju.'),
+            default => throw new UnableToResolveCurrentTeam('Nepodržana strategija trenutnog tima ['.$this->strategy().'].'),
         };
     }
 
@@ -197,7 +215,7 @@ class TeamContextResolver
         $team = Team::query()->orderBy('id')->first();
 
         if (! $team) {
-            throw new UnableToResolveCurrentTeam('No team exists for first_team fallback.');
+            throw new UnableToResolveCurrentTeam('Ne postoji tim za first_team fallback.');
         }
 
         $this->storeCurrentTeamId((int) $team->getKey());
@@ -208,7 +226,7 @@ class TeamContextResolver
     protected function resolveDefaultTeamFallback(): Team
     {
         $team = Team::query()->firstOrCreate([
-            'name' => (string) config('velora.current_team.default_team_name', 'Default Team'),
+            'name' => (string) config('velora.current_team.default_team_name', 'Zadani tim'),
         ]);
 
         $this->storeCurrentTeamId((int) $team->getKey());
@@ -218,7 +236,7 @@ class TeamContextResolver
 
     protected function resolveSystemTeamFallback(): Team
     {
-        $team = new Team(['name' => (string) config('velora.current_team.system_team_name', 'System Team')]);
+        $team = new Team(['name' => (string) config('velora.current_team.system_team_name', 'Sistemski tim')]);
         $team->setAttribute('id', 0);
 
         return $team;

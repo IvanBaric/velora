@@ -13,7 +13,7 @@ final class SyncMembershipRoleAction
     public function execute(TeamMembership $membership, string $roleSlug): ActionResult
     {
         if ($membership->is_owner) {
-            return ActionResult::error('Owner role cannot be changed.');
+            return ActionResult::error('Ulogu vlasnika nije moguće promijeniti.');
         }
 
         $roleExists = Role::query()
@@ -23,7 +23,7 @@ final class SyncMembershipRoleAction
             ->exists();
 
         if (! $roleExists) {
-            return ActionResult::error('Role not found for this team context.');
+            return ActionResult::error('Uloga nije pronađena za ovaj tim.');
         }
 
         $result = $membership->syncRoles([$roleSlug]);
@@ -32,6 +32,6 @@ final class SyncMembershipRoleAction
             return ActionResult::fromOperationResult($result);
         }
 
-        return ActionResult::success('Member role updated.');
+        return ActionResult::success('Uloga člana je ažurirana.');
     }
 }

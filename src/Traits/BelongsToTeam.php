@@ -13,17 +13,17 @@ trait BelongsToTeam
     public static function bootBelongsToTeam(): void
     {
         static::creating(function ($model): void {
-            if (! $model->team_id && function_exists('team')) {
-                $model->team_id = team()->getKey();
+            if (! $model->team_id && app()->bound('team') && app('team') instanceof Team) {
+                $model->team_id = app('team')->getKey();
             }
         });
 
         static::addGlobalScope('team_context', function (Builder $builder): void {
-            if (! function_exists('team')) {
+            if (! app()->bound('team') || ! app('team') instanceof Team) {
                 return;
             }
 
-            $builder->where($builder->qualifyColumn('team_id'), team()->getKey());
+            $builder->where($builder->qualifyColumn('team_id'), app('team')->getKey());
         });
     }
 

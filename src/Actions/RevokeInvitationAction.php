@@ -13,13 +13,13 @@ final class RevokeInvitationAction
     public function execute(TeamInvitation $invitation, ?int $actorUserId = null, array $meta = []): ActionResult
     {
         if (! $invitation->canBeRevoked()) {
-            return ActionResult::error('Accepted invitations cannot be revoked.');
+            return ActionResult::error('Prihvaćene pozivnice nije moguće opozvati.');
         }
 
         DB::transaction(function () use ($invitation, $actorUserId, $meta): void {
             $invitation->markRevoked($actorUserId, $meta + ['reason' => 'manual_revoke']);
         });
 
-        return ActionResult::success('Invitation revoked.');
+        return ActionResult::success('Pozivnica je opozvana.');
     }
 }

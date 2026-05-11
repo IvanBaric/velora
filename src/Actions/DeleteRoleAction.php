@@ -13,12 +13,12 @@ final class DeleteRoleAction
     public function execute(Role $role, ?Role $replacementRole = null): ActionResult
     {
         if ($role->isGlobal() || $role->is_locked) {
-            return ActionResult::error('This role cannot be deleted.');
+            return ActionResult::error('Ovu ulogu nije moguće izbrisati.');
         }
 
         $userCount = $role->userRoles()->count();
         if ($userCount > 0 && ! $replacementRole) {
-            return ActionResult::error('Select a replacement role.');
+            return ActionResult::error('Odaberite zamjensku ulogu.');
         }
 
         DB::transaction(function () use ($role, $replacementRole, $userCount): void {
@@ -30,6 +30,6 @@ final class DeleteRoleAction
             $role->delete();
         });
 
-        return ActionResult::success('Role deleted.');
+        return ActionResult::success('Uloga je izbrisana.');
     }
 }
