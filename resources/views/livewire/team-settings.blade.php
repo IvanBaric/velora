@@ -10,6 +10,13 @@
     $activeMemberCount = TeamMembership::query()->withoutGlobalScopes()->where('team_id', $teamId)->where('status', TeamMembershipStatus::Active->value)->count();
     $pendingInvitationCount = TeamInvitation::query()->where('team_id', $teamId)->where('status', TeamInvitationStatus::Pending->value)->count();
     $roleCount = Role::query()->availableToTeam($teamId)->notHidden()->count();
+
+    $cards = [
+        ['label' => __('Ukupno članova'), 'value' => number_format($memberCount, 0, ',', ' '), 'icon' => 'users', 'accent' => 'bg-zinc-900 dark:bg-white'],
+        ['label' => __('Aktivni'), 'value' => number_format($activeMemberCount, 0, ',', ' '), 'icon' => 'check-circle', 'accent' => 'bg-emerald-500'],
+        ['label' => __('Pozivnice'), 'value' => number_format($pendingInvitationCount, 0, ',', ' '), 'icon' => 'paper-airplane', 'accent' => 'bg-sky-500'],
+        ['label' => __('Uloge'), 'value' => number_format($roleCount, 0, ',', ' '), 'icon' => 'shield-check', 'accent' => 'bg-violet-500'],
+    ];
 @endphp
 
 <section class="mx-auto grid w-full max-w-7xl gap-7 pb-4 lg:gap-8">
@@ -39,37 +46,20 @@
     </header>
 
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Ukupno članova') }}</span>
-                <flux:icon icon="users" variant="micro" class="size-4 text-zinc-500 dark:text-zinc-400" />
+        @foreach ($cards as $card)
+            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 transition duration-150 ease-out dark:bg-zinc-950 dark:ring-white/10">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="space-y-2.5">
+                        <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ $card['label'] }}</p>
+                        <p class="text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ $card['value'] }}</p>
+                    </div>
+                    <div class="rounded-xl bg-zinc-50/80 p-2.5 text-zinc-400 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:text-zinc-500 dark:ring-white/10">
+                        <flux:icon :icon="$card['icon']" variant="micro" class="size-4" />
+                    </div>
+                </div>
+                <div class="mt-5 h-0.5 w-8 rounded-full opacity-70 {{ $card['accent'] }}"></div>
             </div>
-            <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ number_format($memberCount, 0, ',', ' ') }}</p>
-        </div>
-
-        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Aktivni') }}</span>
-                <flux:icon icon="check-circle" variant="micro" class="size-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ number_format($activeMemberCount, 0, ',', ' ') }}</p>
-        </div>
-
-        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Pozivnice') }}</span>
-                <flux:icon icon="paper-airplane" variant="micro" class="size-4 text-sky-600 dark:text-sky-400" />
-            </div>
-            <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ number_format($pendingInvitationCount, 0, ',', ' ') }}</p>
-        </div>
-
-        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Uloge') }}</span>
-                <flux:icon icon="shield-check" variant="micro" class="size-4 text-violet-600 dark:text-violet-400" />
-            </div>
-            <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ number_format($roleCount, 0, ',', ' ') }}</p>
-        </div>
+        @endforeach
     </div>
 
     <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
