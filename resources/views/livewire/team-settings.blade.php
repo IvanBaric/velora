@@ -19,18 +19,11 @@
     ];
 @endphp
 
-<x-admin-ui::page class="p-4 sm:p-6">
+<x-admin-ui::page>
     <x-admin-ui::page-header
         :title="__('Korisnici')"
-        :description="__('Upravljajte clanovima, pozivnicama i ulogama za tim :team.', ['team' => $team->name])"
+        :description="__('Upravljajte clanovima, pozivnicama i ulogama.')"
     >
-        <x-slot:badge>
-            <span class="inline-flex items-center gap-2 rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
-                <flux:icon name="users" class="size-3.5" />
-                {{ $team->name ?? __('QR Cjenik') }}
-            </span>
-        </x-slot:badge>
-
         <x-slot:actions>
             <flux:button variant="ghost" size="sm" icon="magnifying-glass" wire:click="$set('showSearchModal', true)">
                 {{ __('Pretraga') }}
