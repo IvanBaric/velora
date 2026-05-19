@@ -14,7 +14,7 @@ enum TeamInvitationStatus: string
     public function color(): string
     {
         return match ($this) {
-            self::Pending => 'blue',
+            self::Pending => 'green',
             self::Accepted => 'green',
             self::Revoked => 'zinc',
             self::Expired => 'amber',

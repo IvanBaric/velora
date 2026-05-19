@@ -1,6 +1,6 @@
 <form wire:submit="sendInvitation" class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
     <div class="mb-5 flex items-start gap-3">
-        <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-50/80 text-zinc-400 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:text-zinc-500 dark:ring-white/10">
+        <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
             <flux:icon icon="paper-airplane" variant="micro" class="size-5" />
         </div>
         <div>

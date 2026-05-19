@@ -1,42 +1,52 @@
-<div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-    <div class="hidden grid-cols-12 gap-3 bg-zinc-50/40 px-6 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400 dark:bg-zinc-900/30 dark:text-zinc-500 sm:grid">
-        <div class="col-span-5">{{ __('Email') }}</div>
-        <div class="col-span-3">{{ __('Uloga') }}</div>
-        <div class="col-span-3">{{ __('Status') }}</div>
-        <div class="col-span-1 text-right">{{ __('Akcije') }}</div>
-    </div>
+<x-admin-ui::panel>
+    @if ($invitations->isNotEmpty())
+        <div class="admin-list-header lg:grid-cols-[minmax(0,1fr)_9rem_9rem_5rem]">
+            <span>{{ __('Email') }}</span>
+            <span>{{ __('Uloga') }}</span>
+            <span>{{ __('Status') }}</span>
+            <span class="text-right">{{ __('Akcije') }}</span>
+        </div>
+    @endif
 
     @forelse ($invitations as $invitation)
-        <div wire:key="invitation-{{ $invitation->uuid }}" class="group/row grid grid-cols-1 items-center gap-3 border-t border-zinc-100/70 px-4 py-4 transition duration-150 ease-out first:border-t-0 hover:bg-zinc-50/50 focus-within:bg-zinc-50/60 dark:border-zinc-800/70 dark:hover:bg-zinc-900/60 dark:focus-within:bg-zinc-900/70 sm:grid-cols-12 sm:px-6">
-            <div class="col-span-5 min-w-0">
-                <div class="truncate text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">{{ $invitation->email }}</div>
-                <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                    {{ $invitation->last_sent_at ? __('Poslano :date', ['date' => $invitation->last_sent_at->format('d.m.Y. H:i')]) : __('Još nije poslano') }}
-                </div>
+        <article wire:key="invitation-{{ $invitation->uuid }}" class="admin-list-row p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_9rem_9rem_5rem]">
+            <div class="min-w-0">
+                <h3 class="truncate text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">
+                    {{ $invitation->email }}
+                </h3>
+                <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                    {{ $invitation->last_sent_at ? __('Poslano :date', ['date' => $invitation->last_sent_at->format('d.m.Y. H:i')]) : __('Jos nije poslano') }}
+                </p>
             </div>
 
-            <div class="col-span-3 text-sm text-zinc-700 dark:text-zinc-200">
+            <div class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                <span class="me-2 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500 lg:hidden">{{ __('Uloga') }}</span>
                 {{ $roleLabels[$invitation->role_slug] ?? $invitation->role_slug }}
             </div>
 
-            <div class="col-span-3">
+            <div>
+                <span class="me-2 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500 lg:hidden">{{ __('Status') }}</span>
                 <flux:tooltip :content="$invitation->status->tooltip()" position="bottom">
-                    <flux:badge color="{{ $invitation->status->color() }}" size="sm" inset="top bottom" icon="{{ $invitation->status->icon() }}">
+                    <span @class([
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] ring-1',
+                        'bg-accent/10 text-accent-content ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25' => $invitation->status === \IvanBaric\Velora\Enums\TeamInvitationStatus::Pending || $invitation->status === \IvanBaric\Velora\Enums\TeamInvitationStatus::Accepted,
+                        'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20' => $invitation->status === \IvanBaric\Velora\Enums\TeamInvitationStatus::Expired,
+                        'bg-zinc-100 text-zinc-600 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10' => $invitation->status === \IvanBaric\Velora\Enums\TeamInvitationStatus::Revoked,
+                    ])>
+                        <flux:icon :icon="$invitation->status->icon()" class="size-3.5" />
                         {{ ucfirst($invitation->status->value) }}
-                    </flux:badge>
+                    </span>
                 </flux:tooltip>
             </div>
 
-            <div class="col-span-1 flex justify-end">
+            <div class="flex justify-start lg:justify-end">
                 <flux:dropdown position="bottom" align="end">
-                    <flux:tooltip :content="__('Akcije pozivnice')">
-                        <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije pozivnice') }}" />
-                    </flux:tooltip>
+                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije pozivnice') }}" />
 
                     <flux:menu>
                         @if ($invitation->status !== \IvanBaric\Velora\Enums\TeamInvitationStatus::Accepted)
                             <flux:menu.item icon="paper-airplane" wire:click="resendInvitation('{{ $invitation->uuid }}')">
-                                {{ __('Pošalji ponovno') }}
+                                {{ __('Posalji ponovno') }}
                             </flux:menu.item>
                         @endif
 
@@ -49,15 +59,17 @@
                     </flux:menu>
                 </flux:dropdown>
             </div>
-        </div>
+        </article>
     @empty
-        <div class="p-6 sm:p-10">
-            <div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400 ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-500 dark:ring-white/10">
-                <flux:icon icon="inbox" variant="micro" class="size-6" />
-            </div>
-            <p class="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ __('Nema pozivnica') }}</p>
-            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Poslane pozivnice prikazat će se ovdje.') }}</p>
-        </div>
+        <x-admin-ui::empty-state
+            :title="__('Nema pozivnica')"
+            :description="__('Poslane pozivnice prikazat ce se ovdje.')"
+            class="min-h-[13rem] py-8"
+        >
+            <x-slot:icon>
+                <flux:icon icon="inbox" class="size-6" />
+            </x-slot:icon>
+        </x-admin-ui::empty-state>
     @endforelse
 
     @if ($invitations->hasPages())
@@ -65,4 +77,4 @@
             {{ $invitations->links() }}
         </div>
     @endif
-</div>
+</x-admin-ui::panel>

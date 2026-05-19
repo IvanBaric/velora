@@ -20,9 +20,13 @@
                             <flux:table.cell variant="strong">{{ $role->name }}</flux:table.cell>
                             <flux:table.cell>
                                 @if ($role->isGlobal())
-                                    <flux:badge color="zinc" size="sm" inset="top bottom">Sustav</flux:badge>
+                                    <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-600 ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10">
+                                        Sustav
+                                    </span>
                                 @else
-                                    <flux:badge color="emerald" size="sm" inset="top bottom">Tim</flux:badge>
+                                    <span class="inline-flex items-center rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
+                                        Tim
+                                    </span>
                                 @endif
                             </flux:table.cell>
                             <flux:table.cell>{{ $role->permission_items_count }}</flux:table.cell>
@@ -75,7 +79,7 @@
                             @endif
                         </flux:heading>
                     </div>
-                    <div class="shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    <div class="shrink-0 rounded-full border border-accent/15 bg-accent/10 px-3 py-1 text-sm text-accent-content dark:border-accent/25 dark:bg-accent/15 dark:text-accent-content">
                         <span x-text="(selected?.length ?? 0) + ' odabrano'"></span>
                     </div>
                 </div>
@@ -97,7 +101,7 @@
                                 :disabled="$isReadOnly"
                             />
 
-                            <div class="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
+                            <div class="rounded-2xl border border-dashed border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent-content dark:border-accent/25 dark:bg-accent/15 dark:text-accent-content">
                                 @if ($isReadOnly)
                                     Samo za pregled
                                 @else
@@ -139,7 +143,7 @@
                                                 <div class="mt-1 max-w-2xl text-xs text-zinc-500">{{ $permissionGroup->description }}</div>
                                             @endif
                                         </div>
-                                        <div class="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{{ $permissionGroup->items->count() }}</div>
+                                        <div class="rounded-full bg-accent/10 px-2.5 py-1 text-xs text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">{{ $permissionGroup->items->count() }}</div>
                                     </div>
                                 </summary>
 

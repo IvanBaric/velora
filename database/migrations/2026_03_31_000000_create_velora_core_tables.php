@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -13,14 +15,10 @@ return new class extends Migration
         $userModel = velora_user_model();
         $userTable = velora_user_table();
 
-        Schema::create('teams', function (Blueprint $table): void {
-            $table->id();
-            $table->uuid('uuid')->unique();
-            $table->string('name');
-            $table->timestamps();
-        });
+        $this->ensureTeamsTable();
 
-        Schema::create('team_memberships', function (Blueprint $table) use ($userModel, $userTable): void {
+        if (! Schema::hasTable('team_memberships')) {
+            Schema::create('team_memberships', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
@@ -36,9 +34,11 @@ return new class extends Migration
             $table->unique(['team_id', 'user_id']);
             $table->index(['team_id', 'status']);
             $table->index(['user_id', 'status']);
-        });
+            });
+        }
 
-        Schema::create('roles', function (Blueprint $table): void {
+        if (! Schema::hasTable('roles')) {
+            Schema::create('roles', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('team_id')->nullable()->constrained()->nullOnDelete();
@@ -58,9 +58,11 @@ return new class extends Migration
             $table->unique(['team_id', 'slug']);
             $table->index(['team_id', 'is_active']);
             $table->index(['is_system', 'assignable']);
-        });
+            });
+        }
 
-        Schema::create('user_roles', function (Blueprint $table) use ($userModel, $userTable): void {
+        if (! Schema::hasTable('user_roles')) {
+            Schema::create('user_roles', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignIdFor($userModel, 'user_id')->constrained($userTable)->cascadeOnDelete();
@@ -75,9 +77,11 @@ return new class extends Migration
             $table->index(['user_id', 'team_id']);
             $table->index(['team_id', 'role_id']);
             $table->index('expires_at');
-        });
+            });
+        }
 
-        Schema::create('team_invitations', function (Blueprint $table) use ($userModel, $userTable): void {
+        if (! Schema::hasTable('team_invitations')) {
+            Schema::create('team_invitations', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
@@ -97,9 +101,11 @@ return new class extends Migration
             $table->unique(['team_id', 'email']);
             $table->index(['team_id', 'status']);
             $table->index(['team_id', 'email']);
-        });
+            });
+        }
 
-        Schema::create('team_invitation_events', function (Blueprint $table) use ($userModel, $userTable): void {
+        if (! Schema::hasTable('team_invitation_events')) {
+            Schema::create('team_invitation_events', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
             $table->foreignId('team_invitation_id')->constrained('team_invitations')->cascadeOnDelete();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
@@ -110,9 +116,11 @@ return new class extends Migration
 
             $table->index(['team_invitation_id', 'type']);
             $table->index(['team_id', 'type']);
-        });
+            });
+        }
 
-        Schema::create('permissions', function (Blueprint $table): void {
+        if (! Schema::hasTable('permissions')) {
+            Schema::create('permissions', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->string('name');
@@ -126,9 +134,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['is_active', 'sort_order']);
-        });
+            });
+        }
 
-        Schema::create('permission_items', function (Blueprint $table): void {
+        if (! Schema::hasTable('permission_items')) {
+            Schema::create('permission_items', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('permission_id')->constrained()->cascadeOnDelete();
@@ -144,9 +154,11 @@ return new class extends Migration
 
             $table->unique(['permission_id', 'slug']);
             $table->index(['permission_id', 'is_active']);
-        });
+            });
+        }
 
-        Schema::create('role_permission_items', function (Blueprint $table): void {
+        if (! Schema::hasTable('role_permission_items')) {
+            Schema::create('role_permission_items', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
@@ -155,7 +167,8 @@ return new class extends Migration
 
             $table->unique(['role_id', 'permission_item_id']);
             $table->index(['permission_item_id', 'role_id']);
-        });
+            });
+        }
     }
 
     public function down(): void
@@ -168,6 +181,38 @@ return new class extends Migration
         Schema::dropIfExists('user_roles');
         Schema::dropIfExists('roles');
         Schema::dropIfExists('team_memberships');
-        Schema::dropIfExists('teams');
+    }
+
+    protected function ensureTeamsTable(): void
+    {
+        if (! Schema::hasTable('teams')) {
+            Schema::create('teams', function (Blueprint $table): void {
+                $table->id();
+                $table->uuid('uuid')->unique();
+                $table->string('name');
+                $table->timestamps();
+            });
+
+            return;
+        }
+
+        Schema::table('teams', function (Blueprint $table): void {
+            if (! Schema::hasColumn('teams', 'uuid')) {
+                $table->uuid('uuid')->nullable()->after('id')->index();
+            }
+
+            if (! Schema::hasColumn('teams', 'name')) {
+                $table->string('name')->after('uuid');
+            }
+        });
+
+        DB::table('teams')
+            ->whereNull('uuid')
+            ->orderBy('id')
+            ->select(['id'])
+            ->cursor()
+            ->each(fn (object $team): int => DB::table('teams')
+                ->where('id', $team->id)
+                ->update(['uuid' => (string) Str::uuid()]));
     }
 };

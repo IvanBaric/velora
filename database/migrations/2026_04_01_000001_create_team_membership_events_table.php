@@ -10,6 +10,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('team_membership_events')) {
+            return;
+        }
+
         $userModel = velora_user_model();
         $userTable = velora_user_table();
 

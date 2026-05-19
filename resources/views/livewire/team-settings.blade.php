@@ -12,87 +12,86 @@
     $roleCount = Role::query()->availableToTeam($teamId)->notHidden()->count();
 
     $cards = [
-        ['label' => __('Ukupno članova'), 'value' => number_format($memberCount, 0, ',', ' '), 'icon' => 'users', 'accent' => 'bg-zinc-900 dark:bg-white'],
-        ['label' => __('Aktivni'), 'value' => number_format($activeMemberCount, 0, ',', ' '), 'icon' => 'check-circle', 'accent' => 'bg-emerald-500'],
-        ['label' => __('Pozivnice'), 'value' => number_format($pendingInvitationCount, 0, ',', ' '), 'icon' => 'paper-airplane', 'accent' => 'bg-sky-500'],
-        ['label' => __('Uloge'), 'value' => number_format($roleCount, 0, ',', ' '), 'icon' => 'shield-check', 'accent' => 'bg-violet-500'],
+        ['label' => __('Ukupno clanova'), 'value' => number_format($memberCount, 0, ',', ' '), 'icon' => 'users', 'accent' => 'bg-accent'],
+        ['label' => __('Aktivni'), 'value' => number_format($activeMemberCount, 0, ',', ' '), 'icon' => 'check-circle', 'accent' => 'bg-accent'],
+        ['label' => __('Pozivnice'), 'value' => number_format($pendingInvitationCount, 0, ',', ' '), 'icon' => 'paper-airplane', 'accent' => 'bg-accent'],
+        ['label' => __('Uloge'), 'value' => number_format($roleCount, 0, ',', ' '), 'icon' => 'shield-check', 'accent' => 'bg-accent'],
     ];
 @endphp
 
-<section class="mx-auto grid w-full max-w-7xl gap-7 pb-4 lg:gap-8">
-    <header class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div class="max-w-2xl space-y-2.5">
-            <flux:heading size="xl" level="1" class="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white">{{ __('Korisnici') }}</flux:heading>
-            <flux:subheading class="max-w-xl text-[15px] leading-7 text-zinc-500 dark:text-zinc-400">
-                {{ __('Upravljajte članovima, pozivnicama i ulogama za tim :team.', ['team' => $team->name]) }}
-            </flux:subheading>
-        </div>
+<x-admin-ui::page class="p-4 sm:p-6">
+    <x-admin-ui::page-header
+        :title="__('Korisnici')"
+        :description="__('Upravljajte clanovima, pozivnicama i ulogama za tim :team.', ['team' => $team->name])"
+    >
+        <x-slot:badge>
+            <span class="inline-flex items-center gap-2 rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
+                <flux:icon name="users" class="size-3.5" />
+                {{ $team->name ?? __('QR Cjenik') }}
+            </span>
+        </x-slot:badge>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <flux:tooltip :content="__('Pretraži članove')">
-                <flux:button variant="ghost" icon="magnifying-glass" size="sm" wire:click="$set('showSearchModal', true)">
-                    {{ __('Pretraga') }}
-                </flux:button>
-            </flux:tooltip>
-            <flux:tooltip :content="__('Uredi uloge i dozvole')">
-                <flux:button variant="ghost" icon="shield-check" size="sm" wire:click="$dispatch('open-role-manager')">
-                    {{ __('Uloge') }}
-                </flux:button>
-            </flux:tooltip>
+        <x-slot:actions>
+            <flux:button variant="ghost" size="sm" icon="magnifying-glass" wire:click="$set('showSearchModal', true)">
+                {{ __('Pretraga') }}
+            </flux:button>
+
+            <flux:button variant="ghost" size="sm" icon="shield-check" wire:click="$dispatch('open-role-manager')">
+                {{ __('Uloge') }}
+            </flux:button>
+
             <flux:button variant="primary" icon="envelope" wire:click="$set('showInvitationsModal', true)">
                 {{ __('Pozovi korisnika') }}
             </flux:button>
-        </div>
-    </header>
+        </x-slot:actions>
+    </x-admin-ui::page-header>
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <x-admin-ui::stat-grid>
         @foreach ($cards as $card)
-            <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 transition duration-150 ease-out dark:bg-zinc-950 dark:ring-white/10">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="space-y-2.5">
-                        <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ $card['label'] }}</p>
-                        <p class="text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ $card['value'] }}</p>
-                    </div>
-                    <div class="rounded-xl bg-zinc-50/80 p-2.5 text-zinc-400 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:text-zinc-500 dark:ring-white/10">
-                        <flux:icon :icon="$card['icon']" variant="micro" class="size-4" />
-                    </div>
-                </div>
-                <div class="mt-5 h-0.5 w-8 rounded-full opacity-70 {{ $card['accent'] }}"></div>
-            </div>
+            <x-admin-ui::stat-card
+                :label="$card['label']"
+                :value="$card['value']"
+                :accent="$card['accent']"
+            >
+                <x-slot:icon>
+                    <flux:icon :icon="$card['icon']" variant="micro" class="size-4" />
+                </x-slot:icon>
+            </x-admin-ui::stat-card>
         @endforeach
-    </div>
+    </x-admin-ui::stat-grid>
 
-    <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-        <div class="p-2">
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div class="rounded-xl bg-zinc-50/70 p-1 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10">
-                    <div class="flex flex-wrap items-center gap-1">
-                        <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-zinc-950 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-800 dark:text-white dark:ring-white/10">
-                            <span>{{ __('Članovi') }}</span>
-                            <span class="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] tabular-nums text-zinc-500 dark:bg-zinc-700 dark:text-zinc-300">{{ $memberCount }}</span>
+    <x-admin-ui::toolbar-stack>
+        <x-admin-ui::filter-card>
+            <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div class="admin-filter-tabs">
+                    <div class="admin-filter-tabs-list">
+                        <button type="button" disabled class="admin-filter-tab admin-filter-tab-active">
+                            <span>{{ __('Clanovi') }}</span>
+                            <span class="admin-filter-count admin-filter-count-active">{{ $memberCount }}</span>
                         </button>
-                        <button type="button" wire:click="$set('showInvitationsModal', true)" class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-500 transition duration-150 ease-out hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+
+                        <button type="button" wire:click="$set('showInvitationsModal', true)" class="admin-filter-tab admin-filter-tab-inactive">
                             <span>{{ __('Pozivnice') }}</span>
-                            <span class="text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{{ $pendingInvitationCount }}</span>
+                            <span class="admin-filter-count admin-filter-count-inactive">{{ $pendingInvitationCount }}</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 lg:w-auto">
-                    <div class="lg:w-80">
+                <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                    <div class="sm:w-80">
                         <flux:input
                             wire:model.live.debounce.300ms="search"
-                            placeholder="{{ __('Pretraži po imenu ili emailu...') }}"
+                            placeholder="{{ __('Pretrazi po imenu ili emailu...') }}"
                             size="sm"
                             icon="magnifying-glass"
                             clearable
+                            aria-label="{{ __('Pretrazi clanove') }}"
                         />
                     </div>
+
                     @if ($canCreateTeam || $canUpdateTeam)
                         <flux:dropdown position="bottom" align="end">
-                            <flux:tooltip :content="__('Dodatne akcije')">
-                                <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" />
-                            </flux:tooltip>
+                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Dodatne akcije') }}" />
 
                             <flux:menu>
                                 @if ($canCreateTeam)
@@ -106,38 +105,51 @@
                     @endif
                 </div>
             </div>
-        </div>
+        </x-admin-ui::filter-card>
+    </x-admin-ui::toolbar-stack>
+
+    <x-admin-ui::panel loading loading-target="search" loading-text="{{ __('Osvjezavam clanove') }}">
+        <x-admin-ui::panel-header
+            :title="__('Clanovi tima')"
+            :description="__('Pregled pristupa, statusa i uloga za trenutni tim.')"
+        />
 
         @livewire('teams.team-member-manager')
-    </div>
+    </x-admin-ui::panel>
 
     @if (! auth()->user()?->membershipForCurrentTeam()?->is_owner)
-        <div class="rounded-2xl bg-red-50/80 p-5 shadow-sm ring-1 ring-red-200/70 dark:bg-red-950/20 dark:ring-red-950">
+        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-red-500/15 dark:bg-zinc-950 dark:ring-red-400/20">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <div class="text-sm font-semibold text-red-900 dark:text-red-200">{{ __('Napusti tim') }}</div>
-                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ __('Ova akcija uklanja vaš pristup timu :team.', ['team' => $team->name]) }}</p>
+                    <h2 class="text-sm font-semibold text-red-900 dark:text-red-200">{{ __('Napusti tim') }}</h2>
+                    <p class="mt-1 text-sm leading-6 text-red-700 dark:text-red-300">
+                        {{ __('Ova akcija uklanja vas pristup timu :team.', ['team' => $team->name]) }}
+                    </p>
                 </div>
-                <flux:button wire:click="$set('showLeaveTeamModal', true)" variant="danger" size="sm">{{ __('Napusti tim') }}</flux:button>
+
+                <flux:button wire:click="$set('showLeaveTeamModal', true)" variant="danger" size="sm">
+                    {{ __('Napusti tim') }}
+                </flux:button>
             </div>
-        </div>
+        </section>
     @endif
 
     @livewire('roles.role-manager')
 
     <flux:modal wire:model="showSearchModal" class="space-y-6">
         <div>
-            <flux:heading size="lg">{{ __('Pretraga članova') }}</flux:heading>
-            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Filtrirajte tablicu članova po imenu ili email adresi.') }}</flux:text>
+            <flux:heading size="lg">{{ __('Pretraga clanova') }}</flux:heading>
+            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Filtrirajte listu clanova po imenu ili email adresi.') }}</flux:text>
         </div>
-        <flux:input wire:model.live.debounce.300ms="search" label="{{ __('Pretraga') }}" placeholder="{{ __('Upišite ime ili email...') }}" icon="magnifying-glass" clearable />
+
+        <flux:input wire:model.live.debounce.300ms="search" label="{{ __('Pretraga') }}" placeholder="{{ __('Upisite ime ili email...') }}" icon="magnifying-glass" clearable />
     </flux:modal>
 
     <flux:modal wire:model="showInvitationsModal" flyout variant="floating" class="space-y-8">
         <div class="space-y-6 pt-4">
             <div>
                 <flux:heading size="lg">{{ __('Pozivnice') }}</flux:heading>
-                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pozovite nove korisnike i pratite status već poslanih pozivnica.') }}</flux:text>
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pozovite nove korisnike i pratite status vec poslanih pozivnica.') }}</flux:text>
             </div>
 
             <div class="space-y-6">
@@ -148,37 +160,37 @@
     </flux:modal>
 
     @if ($canCreateTeam)
-    <flux:modal wire:model="showCreateTeamModal" class="space-y-6">
-        <div>
-            <flux:heading size="lg">{{ __('Novi tim') }}</flux:heading>
-            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kreirajte dodatni radni prostor i automatski postanite vlasnik.') }}</flux:text>
-        </div>
-
-        <form wire:submit="createTeam" class="space-y-6">
-            <flux:input wire:model="createTeamName" label="{{ __('Naziv tima') }}" placeholder="{{ __('Npr. Prodaja Zagreb') }}" clearable />
-
-            <div class="flex justify-end gap-2">
-                <flux:button type="button" wire:click="closeCreateTeamModal" variant="ghost">{{ __('Odustani') }}</flux:button>
-                <flux:button type="submit" variant="primary">{{ __('Kreiraj tim') }}</flux:button>
+        <flux:modal wire:model="showCreateTeamModal" class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Novi tim') }}</flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kreirajte dodatni radni prostor i automatski postanite vlasnik.') }}</flux:text>
             </div>
-        </form>
-    </flux:modal>
+
+            <form wire:submit="createTeam" class="space-y-6">
+                <flux:input wire:model="createTeamName" label="{{ __('Naziv tima') }}" placeholder="{{ __('Npr. Prodaja Zagreb') }}" clearable />
+
+                <div class="flex justify-end gap-2">
+                    <flux:button type="button" wire:click="closeCreateTeamModal" variant="ghost">{{ __('Odustani') }}</flux:button>
+                    <flux:button type="submit" variant="primary">{{ __('Kreiraj tim') }}</flux:button>
+                </div>
+            </form>
+        </flux:modal>
     @endif
 
     @if ($canUpdateTeam)
-    <flux:modal wire:model="showBasicInfoModal" class="space-y-6">
-        <div>
-            <flux:heading size="lg">{{ __('Postavke tima') }}</flux:heading>
-            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Osnovni naziv koji se prikazuje u korisničkom sučelju.') }}</flux:text>
-        </div>
-
-        <form wire:submit="updateTeamName" class="space-y-6">
-            <flux:input wire:model="name" label="{{ __('Naziv tima') }}" placeholder="{{ __('Unesite naziv tima...') }}" clearable />
-            <div class="flex justify-end">
-                <flux:button type="submit" variant="primary">{{ __('Spremi') }}</flux:button>
+        <flux:modal wire:model="showBasicInfoModal" class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Postavke tima') }}</flux:heading>
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Osnovni naziv koji se prikazuje u korisnickom sucelju.') }}</flux:text>
             </div>
-        </form>
-    </flux:modal>
+
+            <form wire:submit="updateTeamName" class="space-y-6">
+                <flux:input wire:model="name" label="{{ __('Naziv tima') }}" placeholder="{{ __('Unesite naziv tima...') }}" clearable />
+                <div class="flex justify-end">
+                    <flux:button type="submit" variant="primary">{{ __('Spremi') }}</flux:button>
+                </div>
+            </form>
+        </flux:modal>
     @endif
 
     <flux:modal wire:model="showLeaveTeamModal" class="space-y-6">
@@ -186,11 +198,11 @@
             <flux:heading size="lg">{{ __('Napusti tim') }}</flux:heading>
         </div>
 
-        <flux:text>{{ __('Želite napustiti tim :team?', ['team' => $team->name]) }}</flux:text>
+        <flux:text>{{ __('Zelite napustiti tim :team?', ['team' => $team->name]) }}</flux:text>
 
         <div class="flex justify-end gap-2">
             <flux:button wire:click="$set('showLeaveTeamModal', false)" variant="ghost">{{ __('Odustani') }}</flux:button>
             <flux:button wire:click="confirmLeaveTeam" variant="danger">{{ __('Napusti') }}</flux:button>
         </div>
     </flux:modal>
-</section>
+</x-admin-ui::page>

@@ -53,13 +53,13 @@ class VeloraServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $viewOverridePaths = array_values(array_filter((array) config('velora.views.paths', []), fn ($path) => is_string($path) && $path !== ''));
 
-        // Keep the conventional Laravel override directory as a fallback even when config isn't published.
+        // Keep conventional override paths, but only register directories that exist.
         $this->loadViewsFrom(
-            array_values(array_unique([
+            array_values(array_filter(array_unique([
                 ...$viewOverridePaths,
                 resource_path('views/vendor/velora'),
                 __DIR__.'/../resources/views',
-            ])),
+            ]), fn (string $path): bool => is_dir($path))),
             'velora'
         );
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');

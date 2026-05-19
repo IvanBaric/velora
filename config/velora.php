@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\Team;
 use App\Models\User;
-use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Support\TeamPermissions;
 
 return [
@@ -84,8 +84,8 @@ return [
 
     'routes' => [
         'prefix' => env('VELORA_ROUTES_PREFIX', 'app'),
-        'team_segment' => env('VELORA_ROUTES_TEAM_SEGMENT', 'team'),
-        'authenticated_middleware' => ['web', 'auth', 'set.team'],
+        'team_segment' => env('VELORA_ROUTES_TEAM_SEGMENT', 'teams'),
+        'authenticated_middleware' => ['web', 'auth', 'onboarding_guard', \App\Http\Middleware\EnsureMainDomain::class, 'set.team'],
         'public_middleware' => ['web'],
     ],
 
