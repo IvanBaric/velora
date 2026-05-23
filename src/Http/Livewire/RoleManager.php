@@ -14,6 +14,7 @@ use IvanBaric\Velora\Models\Permission;
 use IvanBaric\Velora\Models\PermissionItem;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Support\ActionResult;
+use IvanBaric\Velora\Support\GrantablePermissions;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -82,12 +83,44 @@ class RoleManager extends Component
             return;
         }
 
-        $data = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'selectedPermissionItems' => ['array'],
-        ]);
-
         $teamId = (int) team()->getKey();
+        $role = $this->roleUuid ? $this->resolveRoleByUuid($this->roleUuid) : null;
+        $this->name = $this->normalizeRoleName($this->name);
+
+        if ($this->selectedPermissionItems === []) {
+            $this->toastFromResult(ActionResult::error('Odaberite barem jednu dozvolu za ovu ulogu.'));
+
+            return;
+        }
+
+        $data = $this->validate(
+            [
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($role, $teamId): void {
+                        $normalizedName = mb_strtolower($this->normalizeRoleName((string) $value));
+                        $duplicateExists = Role::query()
+                            ->withoutGlobalScopes()
+                            ->whereNull('deleted_at')
+                            ->where('team_id', $teamId)
+                            ->when($role, fn ($query) => $query->whereKeyNot($role->getKey()))
+                            ->get(['id', 'name'])
+                            ->contains(fn (Role $existingRole): bool => mb_strtolower($this->normalizeRoleName((string) $existingRole->name)) === $normalizedName);
+
+                        if ($duplicateExists) {
+                            $fail('Uloga s tim nazivom već postoji.');
+                        }
+                    },
+                ],
+                'selectedPermissionItems' => ['required', 'array', 'min:1'],
+            ],
+            [
+                'selectedPermissionItems.required' => 'Odaberite barem jednu dozvolu za ovu ulogu.',
+                'selectedPermissionItems.min' => 'Odaberite barem jednu dozvolu za ovu ulogu.',
+            ],
+        );
 
         $payload = [
             'team_id' => $teamId,
@@ -102,8 +135,14 @@ class RoleManager extends Component
             'is_active' => true,
         ];
 
-        $role = $this->roleUuid ? $this->resolveRoleByUuid($this->roleUuid) : null;
-        $result = $saveRole->execute($role, $payload, $this->resolvePermissionItemIds($this->selectedPermissionItems));
+        $permissionItemIds = $this->resolvePermissionItemIds($this->selectedPermissionItems);
+        if (count($permissionItemIds) !== count(array_unique($this->selectedPermissionItems))) {
+            $this->toastFromResult(ActionResult::error('Odabrane dozvole nisu važeće.'));
+
+            return;
+        }
+
+        $result = $saveRole->execute($role, $payload, $permissionItemIds);
 
         $this->resetForm();
         $this->isFormOpen = false;
@@ -169,11 +208,18 @@ class RoleManager extends Component
 
     public function getPermissionsProperty(): Collection
     {
+        $grantablePermissionIds = app(GrantablePermissions::class)->idsFor(auth()->user(), (int) team()->getKey());
+
         return Permission::query()
             ->where('is_active', true)
-            ->with(['items' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')])
+            ->with(['items' => fn ($query) => $query
+                ->where('is_active', true)
+                ->whereIn('id', $grantablePermissionIds)
+                ->orderBy('sort_order')])
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            ->filter(fn (Permission $permission) => $permission->items->isNotEmpty())
+            ->values();
     }
 
     public function getFilteredPermissionsProperty(): Collection
@@ -261,6 +307,10 @@ class RoleManager extends Component
         $role = Role::query()
             ->withoutGlobalScopes()
             ->where('uuid', $roleUuid)
+            ->where(function ($query): void {
+                $query->whereNull('team_id')
+                    ->orWhere('team_id', team()->getKey());
+            })
             ->firstOrFail();
 
         return $role;
@@ -274,9 +324,17 @@ class RoleManager extends Component
     {
         return PermissionItem::query()
             ->whereIn('uuid', $permissionItemUuids)
+            ->where('is_active', true)
+            ->whereHas('permission', fn ($query) => $query->where('is_active', true))
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
+            ->unique()
             ->all();
+    }
+
+    protected function normalizeRoleName(string $name): string
+    {
+        return trim(preg_replace('/\s+/', ' ', $name) ?? $name);
     }
 
     protected function generateUniqueSlug(string $name, int $teamId): string
@@ -293,7 +351,6 @@ class RoleManager extends Component
         // lookups by slug are performed in a combined scope (global + team).
         while (Role::query()
             ->withoutGlobalScopes()
-            ->whereNull('deleted_at')
             ->where(function ($q) use ($teamId): void {
                 $q->whereNull('team_id')->orWhere('team_id', $teamId);
             })
