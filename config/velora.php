@@ -61,8 +61,6 @@ return [
         'system_team_name' => env('VELORA_SYSTEM_TEAM_NAME', 'Sistemski tim'),
     ],
 
-    'session_key' => env('VELORA_CURRENT_TEAM_SESSION_KEY', 'velora.current_team_id'),
-
     'create_personal_team_on_registration' => env('VELORA_CREATE_PERSONAL_TEAM_ON_REGISTRATION', true),
 
     'create_personal_team_when_missing' => env('VELORA_CREATE_PERSONAL_TEAM_WHEN_MISSING', true),

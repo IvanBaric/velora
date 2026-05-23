@@ -360,10 +360,6 @@ trait HasTeamRolesPermissions
             return (int) $this->current_team_id;
         }
 
-        if (isset($this->team_id) && $this->team_id) {
-            return (int) $this->team_id;
-        }
-
         return null;
     }
 

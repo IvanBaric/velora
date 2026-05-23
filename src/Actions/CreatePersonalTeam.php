@@ -30,8 +30,31 @@ class CreatePersonalTeam
 
             $membership = TeamMembership::ensureForUser($user, $team, true);
             $membership->assignRole('admin', $team);
+            $this->assignCurrentTeam($user, (int) $team->getKey());
 
             return $team;
         });
+    }
+
+    protected function assignCurrentTeam(Model $user, int $teamId): void
+    {
+        try {
+            $schema = $user->getConnection()->getSchemaBuilder();
+            $values = [];
+
+            if ($schema->hasColumn($user->getTable(), 'current_team_id')) {
+                $values['current_team_id'] = $teamId;
+            }
+
+            if ($schema->hasColumn($user->getTable(), 'team_id') && ! $user->getAttribute('team_id')) {
+                $values['team_id'] = $teamId;
+            }
+
+            if ($values !== []) {
+                $user->forceFill($values)->saveQuietly();
+            }
+        } catch (\Throwable) {
+            // Host applications may use custom or read-only user models.
+        }
     }
 }
