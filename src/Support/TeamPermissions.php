@@ -9,4 +9,10 @@ final class TeamPermissions
     public const MANAGE_MEMBERS = 'teams.manage_members';
 
     public const MANAGE_ROLES = 'teams.manage_roles';
+
+    public const QR_MANAGE = 'qr.manage';
+
+    public const QR_DELETE = 'qr.delete';
+
+    public const BUSINESS_UPDATE = 'business.update';
 }

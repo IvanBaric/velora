@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use IvanBaric\Velora\Http\Controllers\RolePreviewController;
 use IvanBaric\Velora\Http\Controllers\TeamInvitationController;
 use IvanBaric\Velora\Http\Controllers\TeamSwitchController;
 use IvanBaric\Velora\Http\Livewire\TeamCreate;
@@ -17,6 +18,8 @@ if (class_exists(Livewire::class)) {
         Route::get($teamBasePath, TeamSettings::class)->middleware('permission:teams.view')->name('teams.settings');
         Route::get($teamBasePath.'/create', TeamCreate::class)->middleware('permission:teams.create')->name('teams.create');
         Route::get($teamBasePath.'/switch/{team}', TeamSwitchController::class)->name('teams.switch');
+        Route::post($teamBasePath.'/roles/preview/{role}', [RolePreviewController::class, 'start'])->name('teams.roles.preview');
+        Route::delete($teamBasePath.'/roles/preview', [RolePreviewController::class, 'stop'])->name('teams.roles.preview.stop');
     });
 }
 

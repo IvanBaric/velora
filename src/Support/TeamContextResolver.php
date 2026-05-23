@@ -81,6 +81,10 @@ class TeamContextResolver
             return null;
         }
 
+        if (isset($user->is_superadmin) && (bool) $user->is_superadmin) {
+            return Team::query()->find($teamId);
+        }
+
         if (! $this->userHasMembershipForTeam($user, $teamId)) {
             return null;
         }

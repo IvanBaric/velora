@@ -26,6 +26,7 @@ use IvanBaric\Velora\Listeners\SendTeamMemberJoinedNotifications;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Policies\TeamPolicy;
 use IvanBaric\Velora\Support\PermissionRegistrar;
+use IvanBaric\Velora\Support\RolePreview;
 use IvanBaric\Velora\Support\SystemAccessSynchronizer;
 use IvanBaric\Velora\Support\TeamContextResolver;
 use IvanBaric\Velora\Support\UserModelResolver;
@@ -39,6 +40,7 @@ class VeloraServiceProvider extends ServiceProvider
 
         $this->app->singleton(TeamContextResolver::class);
         $this->app->singleton(PermissionRegistrar::class);
+        $this->app->singleton(RolePreview::class);
         $this->app->singleton(SystemAccessSynchronizer::class);
         $this->app->singleton(UserModelResolver::class);
 

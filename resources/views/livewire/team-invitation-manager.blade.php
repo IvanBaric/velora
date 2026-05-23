@@ -15,7 +15,7 @@
                     {{ $invitation->email }}
                 </h3>
                 <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-                    {{ $invitation->last_sent_at ? __('Poslano :date', ['date' => $invitation->last_sent_at->format('d.m.Y. H:i')]) : __('Jos nije poslano') }}
+                    {{ $invitation->last_sent_at ? __('Poslano :date', ['date' => $invitation->last_sent_at->format('d.m.Y. H:i')]) : __('Još nije poslano') }}
                 </p>
             </div>
 
@@ -46,7 +46,7 @@
                     <flux:menu>
                         @if ($invitation->status !== \IvanBaric\Velora\Enums\TeamInvitationStatus::Accepted)
                             <flux:menu.item icon="paper-airplane" wire:click="resendInvitation('{{ $invitation->uuid }}')">
-                                {{ __('Posalji ponovno') }}
+                                {{ __('Pošalji ponovno') }}
                             </flux:menu.item>
                         @endif
 
@@ -63,7 +63,7 @@
     @empty
         <x-admin-ui::empty-state
             :title="__('Nema pozivnica')"
-            :description="__('Poslane pozivnice prikazat ce se ovdje.')"
+            :description="__('Poslane pozivnice prikazat će se ovdje.')"
             class="min-h-[13rem] py-8"
         >
             <x-slot:icon>

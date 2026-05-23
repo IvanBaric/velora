@@ -17,6 +17,7 @@ use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Models\UserRole;
+use IvanBaric\Velora\Support\RolePreview;
 
 trait HasTeamRolesPermissions
 {
@@ -164,7 +165,19 @@ trait HasTeamRolesPermissions
     {
         $teamId = $this->resolveTeamId($team);
 
+        if (app()->bound(RolePreview::class)) {
+            $previewAllows = app(RolePreview::class)->allows($permissionCode, $teamId);
+
+            if ($previewAllows !== null) {
+                return $previewAllows;
+            }
+        }
+
         if ($this->isTeamOwner($teamId)) {
+            return true;
+        }
+
+        if ($this->isGlobalSuperadmin()) {
             return true;
         }
 
@@ -218,6 +231,11 @@ trait HasTeamRolesPermissions
             ->where('is_owner', true)
             ->where('status', TeamMembershipStatus::Active->value)
             ->exists();
+    }
+
+    protected function isGlobalSuperadmin(): bool
+    {
+        return isset($this->is_superadmin) && (bool) $this->is_superadmin;
     }
 
     protected function resolveRolesCollection(array|Collection|EloquentCollection $roles, int $teamId): Collection
@@ -336,6 +354,10 @@ trait HasTeamRolesPermissions
             // When eager-loading relations, Eloquent may invoke this on a "blank" model instance.
             // Avoid casting null to 0 which would incorrectly filter pivot rows to team_id=0.
             return isset($this->team_id) && $this->team_id ? (int) $this->team_id : null;
+        }
+
+        if (isset($this->current_team_id) && $this->current_team_id) {
+            return (int) $this->current_team_id;
         }
 
         if (isset($this->team_id) && $this->team_id) {

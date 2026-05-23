@@ -29,6 +29,15 @@ enum TeamMembershipStatus: string
         };
     }
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::Active => 'Aktivan',
+            self::Suspended => 'Suspendiran',
+            self::Revoked => 'Uklonjen',
+        };
+    }
+
     public function tooltip(): string
     {
         return match ($this) {

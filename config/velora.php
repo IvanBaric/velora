@@ -77,6 +77,11 @@ return [
         'default_member_slug' => 'member',
     ],
 
+    'role_preview' => [
+        'redirect_route' => env('VELORA_ROLE_PREVIEW_REDIRECT_ROUTE', 'app.dashboard'),
+        'exit_redirect_route' => env('VELORA_ROLE_PREVIEW_EXIT_REDIRECT_ROUTE', 'teams.settings'),
+    ],
+
     'invitations' => [
         'expires_after_days' => (int) env('VELORA_INVITATION_EXPIRES_AFTER_DAYS', 7),
         'accept_redirect_route' => env('VELORA_INVITATION_ACCEPT_REDIRECT_ROUTE', 'teams.settings'),
@@ -104,6 +109,29 @@ return [
                 ['name' => 'Brisanje', 'slug' => 'delete', 'code' => 'teams.delete', 'label' => 'Brisanje timova', 'sort_order' => 40],
                 ['name' => 'Upravljanje članovima', 'slug' => 'manage_members', 'code' => TeamPermissions::MANAGE_MEMBERS, 'label' => 'Upravljanje članovima', 'sort_order' => 50],
                 ['name' => 'Upravljanje ulogama', 'slug' => 'manage_roles', 'code' => TeamPermissions::MANAGE_ROLES, 'label' => 'Upravljanje ulogama', 'sort_order' => 60],
+            ],
+        ],
+        [
+            'name' => 'QR cjenici',
+            'slug' => 'qr',
+            'label' => 'QR cjenici',
+            'description' => 'Upravljanje QR cjenicima, sekcijama, stavkama i prijevodima.',
+            'icon' => 'qr-code',
+            'sort_order' => 20,
+            'items' => [
+                ['name' => 'Upravljanje sadržajem', 'slug' => 'manage', 'code' => TeamPermissions::QR_MANAGE, 'label' => 'Upravljanje cjenikom', 'sort_order' => 10],
+                ['name' => 'Arhiviranje i brisanje', 'slug' => 'delete', 'code' => TeamPermissions::QR_DELETE, 'label' => 'Arhiviranje i brisanje cjenika', 'sort_order' => 20],
+            ],
+        ],
+        [
+            'name' => 'Poslovanje',
+            'slug' => 'business',
+            'label' => 'Poslovanje',
+            'description' => 'Uređivanje javnih poslovnih informacija.',
+            'icon' => 'building-office',
+            'sort_order' => 30,
+            'items' => [
+                ['name' => 'Uređivanje', 'slug' => 'update', 'code' => TeamPermissions::BUSINESS_UPDATE, 'label' => 'Uređivanje poslovnih informacija', 'sort_order' => 10],
             ],
         ],
     ],
@@ -140,13 +168,16 @@ return [
                 'teams.create',
                 'teams.update',
                 'teams.delete',
+                TeamPermissions::QR_MANAGE,
+                TeamPermissions::QR_DELETE,
+                TeamPermissions::BUSINESS_UPDATE,
             ],
         ],
         [
-            'name' => 'Član',
+            'name' => 'Uređivač',
             'slug' => 'member',
-            'label' => 'Član',
-            'description' => 'Zadana članska uloga.',
+            'label' => 'Uređivač',
+            'description' => 'Može uređivati QR cjenik, prijevode i poslovne informacije.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,
@@ -154,7 +185,8 @@ return [
             'is_active' => true,
             'sort_order' => 30,
             'permissions' => [
-                'teams.view',
+                TeamPermissions::QR_MANAGE,
+                TeamPermissions::BUSINESS_UPDATE,
             ],
         ],
     ],
