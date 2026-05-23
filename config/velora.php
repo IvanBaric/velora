@@ -80,6 +80,10 @@ return [
         'exit_redirect_route' => env('VELORA_ROLE_PREVIEW_EXIT_REDIRECT_ROUTE', 'teams.settings'),
     ],
 
+    'team_switch' => [
+        'redirect_route' => env('VELORA_TEAM_SWITCH_REDIRECT_ROUTE', 'app.dashboard'),
+    ],
+
     'invitations' => [
         'expires_after_days' => (int) env('VELORA_INVITATION_EXPIRES_AFTER_DAYS', 7),
         'accept_redirect_route' => env('VELORA_INVITATION_ACCEPT_REDIRECT_ROUTE', 'teams.settings'),
