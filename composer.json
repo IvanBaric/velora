@@ -11,9 +11,18 @@
     "livewire/livewire": "Required only for the packaged Livewire UI components.",
     "livewire/flux": "Optional toast/UI layer for Velora Livewire components."
   },
+  "require-dev": {
+    "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
+    "phpunit/phpunit": "^10.5 || ^11.0 || ^12.0"
+  },
   "autoload": {
     "psr-4": {
       "IvanBaric\\Velora\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "IvanBaric\\Velora\\Tests\\": "tests/"
     }
   },
   "extra": {

@@ -10,16 +10,19 @@ use IvanBaric\Velora\Actions\CreatePersonalTeam;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Events\TeamSwitched;
 use IvanBaric\Velora\Exceptions\UnableToResolveCurrentTeam;
-use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Models\TeamMembership;
 
 class TeamContextResolver
 {
-    protected ?Team $resolved = null;
+    protected ?Model $resolved = null;
 
-    public function resolve(): Team
+    public function __construct(
+        protected TeamModelResolver $teams,
+    ) {}
+
+    public function resolve(): Model
     {
-        if ($this->resolved instanceof Team) {
+        if ($this->resolved instanceof Model) {
             return $this->resolved;
         }
 
@@ -30,69 +33,65 @@ class TeamContextResolver
         return $this->resolved = $this->resolveFallbackTeam();
     }
 
-    public function setCurrentTeam(Team|int $team): ?Team
+    public function setCurrentTeam(Model|int|string $team): ?Model
     {
-        $teamModel = $team instanceof Team
+        $teamModel = $this->teams->isTeam($team)
             ? $team
-            : Team::query()->find($team);
+            : $this->teams->query()->find($team);
 
-        if (! $teamModel) {
+        if (! $teamModel instanceof Model) {
             return null;
         }
 
-        $this->storeCurrentTeamId((int) $teamModel->getKey());
+        $user = Auth::user();
+        if ($user && ! $this->userCanUseTeam($user, (int) $teamModel->getKey())) {
+            return null;
+        }
+
+        $this->persistCurrentTeamId((int) $teamModel->getKey());
         $this->resolved = $teamModel;
 
-        app()->instance('team', $teamModel);
-        app()->instance(Team::class, $teamModel);
+        $this->teams->bind($teamModel);
         event(new TeamSwitched($teamModel));
 
         return $teamModel;
     }
 
-    protected function resolveForAuthenticatedUser(): ?Team
+    protected function resolveForAuthenticatedUser(): ?Model
     {
         $user = Auth::user();
         if (! $user) {
             return null;
         }
 
-        if ($team = $this->resolveFromSessionMembership($user)) {
+        if ($team = $this->resolveFromCurrentTeam($user)) {
             return $team;
         }
 
         if ($team = $this->resolveFromMemberships($user)) {
-            $this->storeCurrentTeamId((int) $team->getKey());
+            $this->persistCurrentTeamId((int) $team->getKey());
 
-            return $team;
-        }
-
-        if ($team = $this->resolveFromLegacyUserTeam($user)) {
             return $team;
         }
 
         return $this->resolveMissingPersonalTeam($user);
     }
 
-    protected function resolveFromSessionMembership(mixed $user): ?Team
+    protected function resolveFromCurrentTeam(mixed $user): ?Model
     {
-        $teamId = $this->currentTeamIdFromSession();
+        $teamId = (int) ($user->current_team_id ?? 0);
         if (! $teamId) {
             return null;
         }
 
-        if (isset($user->is_superadmin) && (bool) $user->is_superadmin) {
-            return Team::query()->find($teamId);
-        }
-
-        if (! $this->userHasMembershipForTeam($user, $teamId)) {
+        if (! $this->userCanUseTeam($user, $teamId)) {
             return null;
         }
 
-        return Team::query()->find($teamId);
+        return $this->teams->query()->find($teamId);
     }
 
-    protected function resolveFromMemberships(mixed $user): ?Team
+    protected function resolveFromMemberships(mixed $user): ?Model
     {
         if (! method_exists($user, 'memberships')) {
             return null;
@@ -109,46 +108,28 @@ class TeamContextResolver
             return null;
         }
 
-        return Team::query()->find($membership->team_id);
+        return $this->teams->query()->find($membership->team_id);
     }
 
-    protected function resolveFromLegacyUserTeam(mixed $user): ?Team
-    {
-        $legacyTeamId = $user->team_id ?? null;
-        if (! $legacyTeamId) {
-            return null;
-        }
-
-        $team = Team::query()->find($legacyTeamId);
-        if (! $team) {
-            return null;
-        }
-
-        $this->storeCurrentTeamId((int) $team->getKey());
-
-        return $team;
-    }
-
-    protected function resolveFromPublicSession(): ?Team
-    {
-        $teamId = $this->currentTeamIdFromSession();
-        if (! $teamId) {
-            return null;
-        }
-
-        return Team::query()->find($teamId);
-    }
-
-    protected function resolveMissingPersonalTeam(mixed $user): ?Team
+    protected function resolveMissingPersonalTeam(mixed $user): ?Model
     {
         if (! config('velora.create_personal_team_when_missing', true) || ! $user instanceof Model) {
             return null;
         }
 
         $team = app(CreatePersonalTeam::class)->execute($user);
-        $this->storeCurrentTeamId((int) $team->getKey());
+        $this->persistCurrentTeamId((int) $team->getKey());
 
         return $team;
+    }
+
+    protected function userCanUseTeam(mixed $user, int $teamId): bool
+    {
+        if (isset($user->is_superadmin) && (bool) $user->is_superadmin) {
+            return $this->teams->query()->whereKey($teamId)->exists();
+        }
+
+        return $this->userHasMembershipForTeam($user, $teamId);
     }
 
     protected function userHasMembershipForTeam(mixed $user, int $teamId): bool
@@ -168,82 +149,107 @@ class TeamContextResolver
             ->exists();
     }
 
-    protected function currentTeamIdFromSession(): ?int
+    protected function persistCurrentTeamId(int $teamId): void
     {
+        $user = Auth::user();
+        if (! $user instanceof Model) {
+            return;
+        }
+
         try {
-            if (! app()->bound('session')) {
-                return null;
+            if (! $user->getConnection()->getSchemaBuilder()->hasColumn($user->getTable(), 'current_team_id')) {
+                return;
             }
 
-            $teamId = app('session')->get((string) config('velora.session_key', 'velora.current_team_id'));
+            if ((int) ($user->getAttribute('current_team_id') ?? 0) === $teamId) {
+                return;
+            }
 
-            return $teamId ? (int) $teamId : null;
+            $user->forceFill(['current_team_id' => $teamId])->saveQuietly();
+            $user->unsetRelation('currentTeam');
         } catch (\Throwable) {
-            return null;
+            // Some host applications may use a read-only or custom user model.
         }
     }
 
-    protected function storeCurrentTeamId(int $teamId): void
-    {
-        try {
-            if (app()->bound('session')) {
-                app('session')->put((string) config('velora.session_key', 'velora.current_team_id'), $teamId);
-            }
-        } catch (\Throwable) {
-            // Session writes can fail in CLI contexts.
-        }
-    }
-
-    protected function resolvePreferredTeam(): ?Team
+    protected function resolvePreferredTeam(): ?Model
     {
         if ($team = $this->resolveForAuthenticatedUser()) {
             return $team;
         }
 
-        return $this->resolveFromPublicSession();
+        return null;
     }
 
-    protected function resolveFallbackTeam(): Team
+    protected function resolveFallbackTeam(): Model
     {
         return match ($this->strategy()) {
             'first_team' => $this->resolveFirstTeamFallback(),
             'create_default_team' => $this->resolveDefaultTeamFallback(),
             'system_team_fallback' => $this->resolveSystemTeamFallback(),
-            'strict' => throw new UnableToResolveCurrentTeam('Nije moguće odrediti trenutni tim koristeći strict strategiju.'),
-            default => throw new UnableToResolveCurrentTeam('Nepodržana strategija trenutnog tima ['.$this->strategy().'].'),
+            'strict' => throw new UnableToResolveCurrentTeam(__('Nije moguće odrediti trenutni tim koristeći strict strategiju.')),
+            default => throw new UnableToResolveCurrentTeam(__('Nepodržana strategija trenutnog tima [:strategy].', ['strategy' => $this->strategy()])),
         };
     }
 
-    protected function resolveFirstTeamFallback(): Team
+    protected function resolveFirstTeamFallback(): Model
     {
-        $team = Team::query()->orderBy('id')->first();
+        $team = $this->teams->query()->orderBy('id')->first();
 
         if (! $team) {
-            throw new UnableToResolveCurrentTeam('Ne postoji tim za first_team fallback.');
+            throw new UnableToResolveCurrentTeam(__('Ne postoji tim za first_team fallback.'));
         }
 
-        $this->storeCurrentTeamId((int) $team->getKey());
+        $this->persistCurrentTeamId((int) $team->getKey());
 
         return $team;
     }
 
-    protected function resolveDefaultTeamFallback(): Team
+    protected function resolveDefaultTeamFallback(): Model
     {
-        $team = Team::query()->firstOrCreate([
-            'name' => (string) config('velora.current_team.default_team_name', 'Zadani tim'),
-        ]);
+        $team = $this->teams->query()->firstOrCreate(
+            ['name' => (string) config('velora.current_team.default_team_name', __('Zadani tim'))],
+            $this->teamCreateDefaults(),
+        );
 
-        $this->storeCurrentTeamId((int) $team->getKey());
+        $this->persistCurrentTeamId((int) $team->getKey());
 
         return $team;
     }
 
-    protected function resolveSystemTeamFallback(): Team
+    protected function resolveSystemTeamFallback(): Model
     {
-        $team = new Team(['name' => (string) config('velora.current_team.system_team_name', 'Sistemski tim')]);
+        $teamClass = $this->teams->className();
+        $team = new $teamClass(['name' => (string) config('velora.current_team.system_team_name', __('Sistemski tim'))]);
         $team->setAttribute('id', 0);
 
         return $team;
+    }
+
+    protected function teamCreateDefaults(): array
+    {
+        $defaults = [];
+        $table = $this->teams->table();
+
+        try {
+            $schema = $this->teams->instance()->getConnection()->getSchemaBuilder();
+
+            if ($schema->hasColumn($table, 'template')) {
+                $defaults['template'] = (string) config('velora.current_team.default_template', 'clean');
+            }
+
+            if ($schema->hasColumn($table, 'business_type')) {
+                $defaults['business_type'] = (string) config('velora.current_team.default_business_type', 'other');
+            }
+
+            if ($schema->hasColumn($table, 'is_active')) {
+                $defaults['is_active'] = true;
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $defaults;
     }
 
     protected function strategy(): string

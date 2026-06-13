@@ -5,16 +5,16 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Support\TeamContextResolver;
+use IvanBaric\Velora\Support\TeamModelResolver;
 use IvanBaric\Velora\Support\UserModelResolver;
 
 if (! function_exists('team')) {
-    function team(): Team
+    function team(): Model
     {
         if (app()->bound('team')) {
-            /** @var Team $resolved */
+            /** @var Model $resolved */
             $resolved = app('team');
 
             return $resolved;
@@ -24,20 +24,62 @@ if (! function_exists('team')) {
         $resolver = app(TeamContextResolver::class);
         $resolved = $resolver->resolve();
 
-        app()->instance('team', $resolved);
-        app()->instance(Team::class, $resolved);
+        app(TeamModelResolver::class)->bind($resolved);
 
         return $resolved;
     }
 }
 
 if (! function_exists('set_current_team')) {
-    function set_current_team(Team|int $team): ?Team
+    function set_current_team(Model|int|string $team): ?Model
     {
         /** @var TeamContextResolver $resolver */
         $resolver = app(TeamContextResolver::class);
 
         return $resolver->setCurrentTeam($team);
+    }
+}
+
+if (! function_exists('velora_team_model')) {
+    /**
+     * @return class-string<Model>
+     */
+    function velora_team_model(): string
+    {
+        /** @var TeamModelResolver $resolver */
+        $resolver = app(TeamModelResolver::class);
+
+        return $resolver->className();
+    }
+}
+
+if (! function_exists('velora_team_query')) {
+    function velora_team_query(): Builder
+    {
+        /** @var TeamModelResolver $resolver */
+        $resolver = app(TeamModelResolver::class);
+
+        return $resolver->query();
+    }
+}
+
+if (! function_exists('velora_team_table')) {
+    function velora_team_table(): string
+    {
+        /** @var TeamModelResolver $resolver */
+        $resolver = app(TeamModelResolver::class);
+
+        return $resolver->table();
+    }
+}
+
+if (! function_exists('velora_is_team_model')) {
+    function velora_is_team_model(mixed $value): bool
+    {
+        /** @var TeamModelResolver $resolver */
+        $resolver = app(TeamModelResolver::class);
+
+        return $resolver->isTeam($value);
     }
 }
 

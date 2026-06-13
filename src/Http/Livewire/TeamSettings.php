@@ -6,12 +6,15 @@ namespace IvanBaric\Velora\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
-use IvanBaric\Velora\Actions\CreateTeamAction;
 use IvanBaric\Velora\Actions\LeaveTeamAction;
 use IvanBaric\Velora\Actions\UpdateTeamNameAction;
+use IvanBaric\Velora\Contracts\PlanAccess;
+use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
+use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
-use IvanBaric\Velora\Models\Team;
-use IvanBaric\Velora\Models\UserRole;
+use IvanBaric\Velora\Support\PlanFeatures;
+use IvanBaric\Velora\Support\TeamPermissions;
+use IvanBaric\Velora\Support\TeamPlanUsage;
 use Livewire\Component;
 
 class TeamSettings extends Component
@@ -41,18 +44,30 @@ class TeamSettings extends Component
     protected $listeners = [
         'close-invitations-modal' => 'closeInvitationsModal',
         'close-create-team-modal' => 'closeCreateTeamModal',
+        'member-search-cleared' => 'clearSearch',
     ];
 
     public function mount(): void
     {
         $this->name = (string) team()->name;
-        $this->canCreateTeam = $this->userHasAssignedPermission('teams.create');
-        $this->canUpdateTeam = $this->userHasAssignedPermission('teams.update');
+        $this->canCreateTeam = false;
+        $this->canUpdateTeam = $this->userHasPermission(TeamPermissions::TEAMS_UPDATE);
     }
 
     public function updatedSearch(): void
     {
         $this->dispatch('search-updated', search: $this->search);
+    }
+
+    public function closeSearchModal(): void
+    {
+        $this->showSearchModal = false;
+    }
+
+    public function clearSearch(): void
+    {
+        $this->search = '';
+        $this->dispatch('search-updated', search: '');
     }
 
     public function closeInvitationsModal(): void
@@ -69,16 +84,12 @@ class TeamSettings extends Component
 
     public function openCreateTeamModal(): void
     {
-        abort_unless($this->userHasAssignedPermission('teams.create'), 403);
-
-        $this->createTeamName = '';
-        $this->resetErrorBag('createTeamName');
-        $this->showCreateTeamModal = true;
+        abort(403);
     }
 
     public function openBasicInfoModal(): void
     {
-        abort_unless($this->userHasAssignedPermission('teams.update'), 403);
+        abort_unless($this->userHasPermission(TeamPermissions::TEAMS_UPDATE), 403);
 
         $this->showBasicInfoModal = true;
     }
@@ -105,7 +116,7 @@ class TeamSettings extends Component
 
     public function updateTeamName(UpdateTeamNameAction $updateTeamName): void
     {
-        abort_unless($this->userHasAssignedPermission('teams.update'), 403);
+        abort_unless($this->userHasPermission(TeamPermissions::TEAMS_UPDATE), 403);
         Gate::authorize('update', team());
 
         $this->validate([
@@ -117,51 +128,44 @@ class TeamSettings extends Component
         $this->toastFromResult($result);
     }
 
-    public function createTeam(CreateTeamAction $createTeam)
+    public function createTeam(): void
     {
-        abort_unless($this->userHasAssignedPermission('teams.create'), 403);
-
-        $this->validate([
-            'createTeamName' => ['required', 'string', 'max:255'],
-        ]);
-
-        /** @var Team $team */
-        $team = $createTeam->execute(auth()->user(), $this->createTeamName);
-
-        set_current_team($team);
-        $this->showCreateTeamModal = false;
-        $this->createTeamName = '';
-        session()->flash('status', "Tim {$team->name} je kreiran.");
-        session()->flash('status_variant', 'success');
-
-        return $this->redirectRoute('teams.settings');
+        abort(403);
     }
 
     public function render(): View
     {
+        $invitationBlockedMessage = $this->invitationBlockedMessage();
+
         return view('velora::livewire.team-settings', [
             'team' => team(),
+            'canInviteWithinCurrentPlan' => $invitationBlockedMessage === null,
+            'invitationBlockedMessage' => $invitationBlockedMessage,
         ])->layout((string) config('velora.views.layouts.app', 'layouts.app'));
     }
 
-    protected function userHasAssignedPermission(string $permissionCode): bool
+    protected function userHasPermission(string $permissionCode): bool
     {
-        $userId = auth()->id();
+        return (bool) auth()->user()?->hasPermission($permissionCode, (int) team()->getKey());
+    }
 
-        if (! $userId) {
-            return false;
+    protected function invitationBlockedMessage(): ?string
+    {
+        try {
+            app(PlanAccess::class)->assertWithinLimit(
+                team(),
+                PlanFeatures::TEAM_MEMBERS_LIMIT,
+                TeamPlanUsage::members(team()),
+            );
+
+            return null;
+        } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
+            $planCode = (string) (team()->plan_code ?: 'starter');
+            $planName = __("plans::plans.{$planCode}.name");
+
+            return __('Invitations are not available on the :plan plan because the team member limit has been reached. Upgrade your plan to add collaborators.', [
+                'plan' => $planName,
+            ]);
         }
-
-        return UserRole::query()
-            ->active()
-            ->where('user_id', $userId)
-            ->where('team_id', team()->getKey())
-            ->whereHas('role', function ($query) use ($permissionCode): void {
-                $query->withoutGlobalScopes()
-                    ->whereHas('permissionItems', fn ($permissionQuery) => $permissionQuery
-                        ->where('code', $permissionCode)
-                        ->where('is_active', true));
-            })
-            ->exists();
     }
 }

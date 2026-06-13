@@ -10,10 +10,15 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Gate;
 use IvanBaric\Velora\Actions\RemoveTeamMemberAction;
 use IvanBaric\Velora\Actions\SyncMembershipRoleAction;
+use IvanBaric\Velora\Contracts\PlanAccess;
+use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
+use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Models\UserRole;
+use IvanBaric\Velora\Support\ActionResult;
+use IvanBaric\Velora\Support\PlanFeatures;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -51,9 +56,20 @@ class TeamMemberManager extends Component
         $this->resetPage();
     }
 
+    public function clearSearch(): void
+    {
+        $this->search = '';
+        $this->resetPage();
+        $this->dispatch('member-search-cleared');
+    }
+
     public function requestRoleChange(string $membershipUuid): void
     {
         Gate::authorize('manageMembers', team());
+
+        if (! $this->rolesAndPermissionsAvailable()) {
+            return;
+        }
 
         $membership = $this->resolveMembershipByUuid($membershipUuid, ['user']);
         $this->loadMembershipRoles($membership);
@@ -107,6 +123,10 @@ class TeamMemberManager extends Component
     {
         Gate::authorize('manageMembers', team());
         abort_unless($this->pendingRoleMembershipUuid && $this->pendingRole, 422);
+
+        if (! $this->rolesAndPermissionsAvailable()) {
+            return;
+        }
 
         $membership = $this->resolveMembershipByUuid((string) $this->pendingRoleMembershipUuid);
         if ($membership->is_owner) {
@@ -189,7 +209,25 @@ class TeamMemberManager extends Component
                 ->notHidden()
                 ->pluck('name', 'slug')
                 ->toArray(),
+            'rolesAndPermissionsAvailable' => $this->rolesAndPermissionsAvailable(toast: false),
         ]);
+    }
+
+    protected function rolesAndPermissionsAvailable(bool $toast = true): bool
+    {
+        try {
+            app(PlanAccess::class)->assertEnabled(team(), PlanFeatures::ROLES_AND_PERMISSIONS);
+
+            return true;
+        } catch (PlanLimitExceededException|PlanFeatureUnavailableException $exception) {
+            if ($toast) {
+                $this->toastFromResult(ActionResult::error(
+                    trim($exception->getMessage().' '.__('Existing roles stay active, but your current plan cannot change member roles. Upgrade your plan to continue.'))
+                ));
+            }
+
+            return false;
+        }
     }
 
     /**

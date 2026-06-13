@@ -61,6 +61,22 @@ php artisan vendor:publish --tag=velora-migrations
 php artisan vendor:publish --tag=velora-views
 ```
 
+Sync configured permissions and system roles after migrations, or after changing `config/velora.php`:
+
+```bash
+php artisan velora:sync
+```
+
+Default sync is production-safe: it creates missing permissions and system roles, but does not overwrite existing runtime labels, descriptions or role permissions.
+
+Overwrite existing permissions and roles from config explicitly:
+
+```bash
+php artisan velora:sync --force
+```
+
+The `superadmin` role is not overwritten by `--force` unless `config('velora.sync.overwrite_superadmin')` is explicitly enabled.
+
 ## Quick Start
 
 ### 1. Add `HasVelora` to your user model

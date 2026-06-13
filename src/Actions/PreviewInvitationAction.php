@@ -44,21 +44,21 @@ final class PreviewInvitationAction
                 $invitation->markExpired();
             }
 
-            throw new InvalidInvitation('Link pozivnice je istekao ili nije valjan.');
+            throw new InvalidInvitation(__('Link pozivnice je istekao ili nije valjan.'));
         }
 
         if ($invitation->status === TeamInvitationStatus::Revoked) {
-            throw new InvalidInvitation('Ova pozivnica je opozvana.');
+            throw new InvalidInvitation(__('Ova pozivnica je opozvana.'));
         }
 
         if ($invitation->status === TeamInvitationStatus::Accepted) {
-            throw new InvalidInvitation('Ova pozivnica je već iskorištena.');
+            throw new InvalidInvitation(__('Ova pozivnica je već iskorištena.'));
         }
 
         if ($invitation->isExpired()) {
             $invitation->markExpired();
 
-            throw new InvalidInvitation('Ova pozivnica je istekla.');
+            throw new InvalidInvitation(__('Ova pozivnica je istekla.'));
         }
 
         return $invitation;
@@ -69,7 +69,7 @@ final class PreviewInvitationAction
         $rateKey = sprintf('velora:invitation:preview:%s:%s', hash('sha256', $token), (string) $ipAddress);
 
         if (RateLimiter::tooManyAttempts($rateKey, 60)) {
-            throw new InvalidInvitation('Previše pokušaja pregleda pozivnice.', 429);
+            throw new InvalidInvitation(__('Previše pokušaja pregleda pozivnice.'), 429);
         }
 
         RateLimiter::hit($rateKey, 60);
@@ -77,7 +77,9 @@ final class PreviewInvitationAction
 
     protected function findExistingUser(string $email): ?Model
     {
-        $user = velora_user_query()->where('email', $email)->first();
+        $user = velora_user_query()
+            ->whereRaw('lower(email) = ?', [TeamInvitation::normalizeEmail($email)])
+            ->first();
 
         return $user instanceof Model ? $user : null;
     }
@@ -87,6 +89,7 @@ final class PreviewInvitationAction
         return Role::query()
             ->withoutGlobalScopes()
             ->availableToTeam($invitation->team_id)
+            ->notHidden()
             ->where('slug', $invitation->role_slug)
             ->value('name') ?? $invitation->role_slug;
     }

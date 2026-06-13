@@ -31,13 +31,23 @@ enum TeamInvitationStatus: string
         };
     }
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::Pending => __('Na čekanju'),
+            self::Accepted => __('Prihvaćeno'),
+            self::Revoked => __('Opozvano'),
+            self::Expired => __('Isteklo'),
+        };
+    }
+
     public function tooltip(): string
     {
         return match ($this) {
-            self::Pending => 'Pozivnica čeka odgovor.',
-            self::Accepted => 'Pozivnica je prihvaćena.',
-            self::Revoked => 'Pozivnica je opozvana.',
-            self::Expired => 'Pozivnica je istekla.',
+            self::Pending => __('Pozivnica čeka odgovor.'),
+            self::Accepted => __('Pozivnica je prihvaćena.'),
+            self::Revoked => __('Pozivnica je opozvana.'),
+            self::Expired => __('Pozivnica je istekla.'),
         };
     }
 }

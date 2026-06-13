@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Support;
 
 use Illuminate\Database\Eloquent\Model;
-use IvanBaric\Velora\Models\Team;
 
 class PermissionRegistrar
 {
@@ -31,10 +30,10 @@ class PermissionRegistrar
         return $user->hasRole($role, $this->resolveTeam($arguments));
     }
 
-    protected function resolveTeam(array $arguments = []): Team|int|null
+    protected function resolveTeam(array $arguments = []): Model|int|null
     {
         foreach ($arguments as $argument) {
-            if ($argument instanceof Team) {
+            if ($argument instanceof Model && velora_is_team_model($argument)) {
                 return $argument;
             }
 

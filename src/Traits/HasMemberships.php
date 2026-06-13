@@ -7,7 +7,6 @@ namespace IvanBaric\Velora\Traits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Models\TeamMembership;
 
 trait HasMemberships
@@ -19,7 +18,7 @@ trait HasMemberships
 
     public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class, 'team_memberships', 'user_id', 'team_id')
+        return $this->belongsToMany(velora_team_model(), 'team_memberships', 'user_id', 'team_id')
             ->withPivot(['status', 'is_owner', 'joined_at', 'last_seen_at'])
             ->withTimestamps();
     }

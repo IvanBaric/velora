@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Events;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use IvanBaric\Velora\Models\Team;
 
 class TeamSwitched
 {
@@ -14,6 +14,6 @@ class TeamSwitched
     use SerializesModels;
 
     public function __construct(
-        public Team $team,
+        public Model $team,
     ) {}
 }

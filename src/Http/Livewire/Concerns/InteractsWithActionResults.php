@@ -38,6 +38,6 @@ trait InteractsWithActionResults
 
     protected function authorizationMessage(Response $response): string
     {
-        return $response->message() ?: 'Nemate ovlasti za ovu akciju.';
+        return $response->message() ?: __('Nemate ovlasti za ovu akciju.');
     }
 }

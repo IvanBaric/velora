@@ -44,7 +44,7 @@ class Role extends Model
 
     public function team(): BelongsTo
     {
-        return $this->belongsTo(Team::class);
+        return $this->belongsTo(velora_team_model());
     }
 
     public function permissionItems(): BelongsToMany
@@ -56,10 +56,7 @@ class Role extends Model
 
     public function users(): BelongsToMany
     {
-        /** @var class-string<Model> $userModel */
-        $userModel = (string) config('velora.models.user');
-
-        return $this->belongsToMany($userModel, 'user_roles', 'role_id', 'user_id')
+        return $this->belongsToMany(velora_user_model(), 'user_roles', 'role_id', 'user_id')
             ->withPivot(['team_id', 'assigned_by_user_id', 'assigned_at', 'expires_at'])
             ->withTimestamps();
     }

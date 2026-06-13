@@ -37,7 +37,7 @@ class UserRole extends Model
 
     public function team(): BelongsTo
     {
-        return $this->belongsTo(Team::class);
+        return $this->belongsTo(velora_team_model());
     }
 
     public function user(): BelongsTo

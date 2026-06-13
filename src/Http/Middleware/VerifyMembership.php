@@ -23,7 +23,7 @@ class VerifyMembership
             ->where('status', TeamMembershipStatus::Active->value)
             ->exists();
 
-        abort_unless($isMember, 403, 'Niste član ovog tima.');
+        abort_unless($isMember, 403, __('Niste član ovog tima.'));
 
         return $next($request);
     }

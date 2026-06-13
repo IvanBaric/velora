@@ -25,7 +25,7 @@ class TeamInvitationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Poziv u tim: '.$this->invitation->team->name,
+            subject: __('Poziv u tim: :team', ['team' => $this->invitation->team->name]),
         );
     }
 

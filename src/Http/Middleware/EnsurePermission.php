@@ -12,7 +12,10 @@ class EnsurePermission
 {
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        abort_unless($request->user()?->hasPermission($permission), 403);
+        $user = $request->user();
+        $teamId = (int) ($user?->current_team_id ?: $user?->team_id ?: 0);
+
+        abort_unless($user && $user->hasPermission($permission, $teamId ?: null), 403);
 
         return $next($request);
     }

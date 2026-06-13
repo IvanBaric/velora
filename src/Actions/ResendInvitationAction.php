@@ -7,6 +7,7 @@ namespace IvanBaric\Velora\Actions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 use IvanBaric\Velora\Data\InvitationDispatchData;
 use IvanBaric\Velora\Mail\TeamInvitationMail;
 use IvanBaric\Velora\Models\Role;
@@ -16,8 +17,17 @@ final class ResendInvitationAction
 {
     public function execute(TeamInvitation $invitation, ?int $actorUserId = null, ?string $roleSlug = null): InvitationDispatchData
     {
-        [$invitation, $plainToken] = DB::transaction(function () use ($invitation, $actorUserId, $roleSlug): array {
-            $plainToken = $invitation->prepareForResend($actorUserId, $roleSlug);
+        if (! $invitation->canBeResent()) {
+            throw ValidationException::withMessages([
+                'invitations' => __('Prihvaćene pozivnice nije moguće ponovno poslati.'),
+            ]);
+        }
+
+        $resolvedRoleSlug = $roleSlug ?? $invitation->role_slug ?? TeamInvitation::defaultRoleSlug($invitation->team_id);
+        $this->ensureRoleCanBeAssigned((string) $resolvedRoleSlug, (int) $invitation->team_id);
+
+        [$invitation, $plainToken] = DB::transaction(function () use ($invitation, $actorUserId, $resolvedRoleSlug): array {
+            $plainToken = $invitation->prepareForResend($actorUserId, $resolvedRoleSlug);
 
             return [$invitation->fresh() ?? $invitation, $plainToken];
         });
@@ -36,7 +46,7 @@ final class ResendInvitationAction
             plainToken: $plainToken,
             url: $url,
             roleLabel: $roleLabel,
-            message: 'Pozivnica je ponovno poslana na '.$invitation->email.'.',
+            message: __('Pozivnica je ponovno poslana na :email.', ['email' => $invitation->email]),
         );
     }
 
@@ -46,5 +56,21 @@ final class ResendInvitationAction
             ->availableToTeam($invitation->team_id)
             ->where('slug', $invitation->role_slug)
             ->value('name') ?? $invitation->role_slug);
+    }
+
+    protected function ensureRoleCanBeAssigned(string $roleSlug, int $teamId): void
+    {
+        $exists = Role::query()
+            ->availableToTeam($teamId)
+            ->assignable()
+            ->notHidden()
+            ->where('slug', $roleSlug)
+            ->exists();
+
+        if (! $exists) {
+            throw ValidationException::withMessages([
+                'invitations' => __('Uloga pozivnice više nije dostupna za dodjelu.'),
+            ]);
+        }
     }
 }

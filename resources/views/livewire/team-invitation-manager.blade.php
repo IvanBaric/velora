@@ -21,7 +21,7 @@
 
             <div class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
                 <span class="me-2 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500 lg:hidden">{{ __('Uloga') }}</span>
-                {{ $roleLabels[$invitation->role_slug] ?? $invitation->role_slug }}
+                {{ __($roleLabels[$invitation->role_slug] ?? $invitation->role_slug) }}
             </div>
 
             <div>
@@ -34,7 +34,7 @@
                         'bg-zinc-100 text-zinc-600 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10' => $invitation->status === \IvanBaric\Velora\Enums\TeamInvitationStatus::Revoked,
                     ])>
                         <flux:icon :icon="$invitation->status->icon()" class="size-3.5" />
-                        {{ ucfirst($invitation->status->value) }}
+                        {{ $invitation->status->label() }}
                     </span>
                 </flux:tooltip>
             </div>

@@ -63,14 +63,20 @@ class TeamInvitationManager extends Component
 
     public function render(): View
     {
+        $teamId = (int) team()->getKey();
+
         TeamInvitation::query()
+            ->withoutGlobalScopes()
             ->pending()
+            ->where('team_id', $teamId)
             ->where('expires_at', '<=', now())
             ->get()
             ->each(fn (TeamInvitation $invitation) => $invitation->markExpired());
 
         return view('velora::livewire.team-invitation-manager', [
             'invitations' => TeamInvitation::query()
+                ->withoutGlobalScopes()
+                ->where('team_id', $teamId)
                 ->with('inviter')
                 ->orderByRaw(
                     "case when status = '".TeamInvitationStatus::Pending->value."' then 0 ".
@@ -81,7 +87,7 @@ class TeamInvitationManager extends Component
                 ->orderByDesc('last_sent_at')
                 ->paginate(5),
             'roleLabels' => Role::query()
-                ->availableToTeam(team()->getKey())
+                ->availableToTeam($teamId)
                 ->pluck('name', 'slug')
                 ->toArray(),
         ]);
@@ -89,7 +95,10 @@ class TeamInvitationManager extends Component
 
     protected function ensureUserIsNotAlreadyMember(string $email): void
     {
-        $user = velora_user_query()->where('email', $email)->first();
+        $normalizedEmail = TeamInvitation::normalizeEmail($email);
+        $user = velora_user_query()
+            ->whereRaw('lower(email) = ?', [$normalizedEmail])
+            ->first();
         if (! $user) {
             return;
         }
@@ -103,7 +112,7 @@ class TeamInvitationManager extends Component
 
         if ($isMember) {
             throw ValidationException::withMessages([
-                'invitations' => 'Korisnik je već član tima.',
+                'invitations' => __('Suradnik je već član tima.'),
             ]);
         }
     }
@@ -116,7 +125,7 @@ class TeamInvitationManager extends Component
             $seconds = RateLimiter::availableIn($key);
 
             throw ValidationException::withMessages([
-                'invitations' => "Previše akcija s pozivnicama. Pokušajte ponovno za {$seconds} sekundi.",
+                'invitations' => __('Previše akcija s pozivnicama. Pokušajte ponovno za :seconds sekundi.', ['seconds' => $seconds]),
             ]);
         }
 

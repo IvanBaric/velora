@@ -32,18 +32,18 @@ enum TeamMembershipStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Active => 'Aktivan',
-            self::Suspended => 'Suspendiran',
-            self::Revoked => 'Uklonjen',
+            self::Active => __('Aktivan'),
+            self::Suspended => __('Suspendiran'),
+            self::Revoked => __('Uklonjen'),
         };
     }
 
     public function tooltip(): string
     {
         return match ($this) {
-            self::Active => 'Aktivan član tima.',
-            self::Suspended => 'Pristup je privremeno onemogućen.',
-            self::Revoked => 'Pristup je uklonjen.',
+            self::Active => __('Aktivan član tima.'),
+            self::Suspended => __('Pristup je privremeno onemogućen.'),
+            self::Revoked => __('Pristup je uklonjen.'),
         };
     }
 }

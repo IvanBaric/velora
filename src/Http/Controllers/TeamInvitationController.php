@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use IvanBaric\Velora\Exceptions\InvalidInvitation;
+use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
+use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Services\TeamInvitationService;
 
 final class TeamInvitationController
@@ -36,6 +38,10 @@ final class TeamInvitationController
             $accepted = $this->teamInvitationService->acceptFromRequest($request, $token, $request->hasValidSignature());
         } catch (InvalidInvitation $exception) {
             abort($exception->status, $exception->getMessage());
+        } catch (PlanLimitExceededException|PlanFeatureUnavailableException $exception) {
+            throw ValidationException::withMessages([
+                'email' => $exception->getMessage(),
+            ]);
         } catch (ValidationException $exception) {
             throw $exception;
         }

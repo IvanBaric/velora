@@ -107,8 +107,8 @@ class TeamMembership extends Model
     {
         if (! $this->canActivate()) {
             return ActionResult::error($this->status === TeamMembershipStatus::Active
-                ? 'Članstvo je već aktivno.'
-                : 'Opozvano članstvo nije moguće ponovno aktivirati.');
+                ? __('Članstvo je već aktivno.')
+                : __('Opozvano članstvo nije moguće ponovno aktivirati.'));
         }
 
         $this->forceFill([
@@ -119,13 +119,13 @@ class TeamMembership extends Model
         $this->recordEvent('activated', $actorUserId);
         event(new MembershipActivated($this));
 
-        return ActionResult::success('Članstvo je aktivirano.');
+        return ActionResult::success(__('Članstvo je aktivirano.'));
     }
 
     public function suspend(?int $actorUserId = null): ActionResult
     {
         if (! $this->canSuspend()) {
-            return ActionResult::error('Članstvo nije moguće suspendirati iz trenutnog statusa.');
+            return ActionResult::error(__('Članstvo nije moguće suspendirati iz trenutnog statusa.'));
         }
 
         $this->forceFill([
@@ -135,13 +135,13 @@ class TeamMembership extends Model
         $this->recordEvent('suspended', $actorUserId);
         event(new MembershipSuspended($this));
 
-        return ActionResult::success('Članstvo je suspendirano.');
+        return ActionResult::success(__('Članstvo je suspendirano.'));
     }
 
     public function revoke(?int $actorUserId = null): ActionResult
     {
         if (! $this->canRevoke()) {
-            return ActionResult::error('Članstvo je već opozvano.');
+            return ActionResult::error(__('Članstvo je već opozvano.'));
         }
 
         $this->forceFill([
@@ -151,10 +151,10 @@ class TeamMembership extends Model
         $this->recordEvent('revoked', $actorUserId);
         event(new MembershipRevoked($this));
 
-        return ActionResult::success('Članstvo je opozvano.');
+        return ActionResult::success(__('Članstvo je opozvano.'));
     }
 
-    public static function ensureForUser(Model $user, Team $team, bool $isOwner = false): self
+    public static function ensureForUser(Model $user, Model $team, bool $isOwner = false): self
     {
         /** @var self $membership */
         $membership = static::query()

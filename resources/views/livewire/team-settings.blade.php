@@ -19,23 +19,42 @@
     ];
 @endphp
 
-<x-admin-ui::page>
+<x-admin-ui::page class="admin-page-compact">
     <x-admin-ui::page-header
-        :title="__('Korisnici')"
-        :description="__('Upravljajte članovima, pozivnicama i ulogama.')"
+        :title="__('Suradnici')"
+        :description="__('Upravljajte suradnicima, pozivnicama i ulogama.')"
     >
         <x-slot:actions>
-            <flux:button variant="ghost" size="sm" icon="magnifying-glass" wire:click="$set('showSearchModal', true)">
-                {{ __('Pretraga') }}
-            </flux:button>
+            @if ($canCreateTeam || $canUpdateTeam)
+                <flux:dropdown position="bottom" align="end">
+                    <flux:button variant="ghost" size="sm" icon="building-office">
+                        {{ __('Timovi') }}
+                    </flux:button>
+
+                    <flux:menu>
+                        @if ($canCreateTeam)
+                            <flux:menu.item icon="plus" wire:click="openCreateTeamModal">{{ __('Novi tim') }}</flux:menu.item>
+                        @endif
+                        @if ($canUpdateTeam)
+                            <flux:menu.item icon="cog-6-tooth" wire:click="openBasicInfoModal">{{ __('Uredi tim') }}</flux:menu.item>
+                        @endif
+                    </flux:menu>
+                </flux:dropdown>
+            @endif
 
             <flux:button variant="ghost" size="sm" icon="shield-check" wire:click="$dispatch('open-role-manager')">
                 {{ __('Uloge') }}
             </flux:button>
 
-            <flux:button variant="primary" icon="envelope" wire:click="$set('showInvitationsModal', true)">
-                {{ __('Pozovi korisnika') }}
-            </flux:button>
+            @if ($canInviteWithinCurrentPlan ?? true)
+                <flux:button variant="primary" icon="envelope" wire:click="$set('showInvitationsModal', true)">
+                    {{ __('Pozovi suradnika') }}
+                </flux:button>
+            @else
+                <x-locked-plan-button :tooltip="$invitationBlockedMessage">
+                    {{ __('Pozovi suradnika') }}
+                </x-locked-plan-button>
+            @endif
         </x-slot:actions>
     </x-admin-ui::page-header>
 
@@ -53,59 +72,29 @@
         @endforeach
     </x-admin-ui::stat-grid>
 
-    <x-admin-ui::toolbar-stack>
-        <x-admin-ui::filter-card>
-            <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div class="admin-filter-tabs">
-                    <div class="admin-filter-tabs-list">
-                        <button type="button" disabled class="admin-filter-tab admin-filter-tab-active">
-                            <span>{{ __('Članovi') }}</span>
-                            <span class="admin-filter-count admin-filter-count-active">{{ $memberCount }}</span>
-                        </button>
-
-                        <button type="button" wire:click="$set('showInvitationsModal', true)" class="admin-filter-tab admin-filter-tab-inactive">
-                            <span>{{ __('Pozivnice') }}</span>
-                            <span class="admin-filter-count admin-filter-count-inactive">{{ $pendingInvitationCount }}</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                    <div class="sm:w-80">
-                        <flux:input
-                            wire:model.live.debounce.300ms="search"
-                            placeholder="{{ __('Pretraži po imenu ili emailu...') }}"
-                            size="sm"
-                            icon="magnifying-glass"
-                            clearable
-                            aria-label="{{ __('Pretraži članove') }}"
-                        />
-                    </div>
-
-                    @if ($canCreateTeam || $canUpdateTeam)
-                        <flux:dropdown position="bottom" align="end">
-                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Dodatne akcije') }}" />
-
-                            <flux:menu>
-                                @if ($canCreateTeam)
-                                    <flux:menu.item icon="plus" wire:click="openCreateTeamModal">{{ __('Novi tim') }}</flux:menu.item>
-                                @endif
-                                @if ($canUpdateTeam)
-                                    <flux:menu.item icon="cog-6-tooth" wire:click="openBasicInfoModal">{{ __('Postavke tima') }}</flux:menu.item>
-                                @endif
-                            </flux:menu>
-                        </flux:dropdown>
-                    @endif
-                </div>
-            </div>
-        </x-admin-ui::filter-card>
-    </x-admin-ui::toolbar-stack>
-
-    <x-admin-ui::panel loading loading-target="search" loading-text="{{ __('Osvježavam članove') }}">
+    <x-admin-ui::panel loading loading-target="search,clearSearch" loading-text="{{ __('Osvježavam članove') }}">
         <x-admin-ui::panel-header
-            :title="__('Članovi tima')"
-            :description="__('Pregled pristupa, statusa i uloga za trenutni tim.')"
-        />
+            :title="__('Suradnici tima')"
+            :description="__('Pregled pristupa, statusa i uloga za suradnike trenutnog tima.')"
+        >
+            <x-slot:actions>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    @if ($search !== '')
+                        <span class="inline-flex max-w-72 items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
+                            <flux:icon icon="magnifying-glass" class="size-4 shrink-0" />
+                            <span class="truncate">{{ $search }}</span>
+                            <button type="button" wire:click="clearSearch" class="rounded-full p-0.5 text-accent-content/70 transition hover:bg-accent/15 hover:text-accent-content focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" aria-label="{{ __('Očisti pretragu') }}">
+                                <flux:icon icon="x-mark" class="size-3.5" />
+                            </button>
+                        </span>
+                    @endif
+
+                    <flux:button variant="ghost" size="sm" icon="magnifying-glass" wire:click="$set('showSearchModal', true)">
+                        {{ __('Pretraga') }}
+                    </flux:button>
+                </div>
+            </x-slot:actions>
+        </x-admin-ui::panel-header>
 
         @livewire('teams.team-member-manager')
     </x-admin-ui::panel>
@@ -129,20 +118,26 @@
 
     @livewire('roles.role-manager')
 
-    <flux:modal wire:model="showSearchModal" class="space-y-6">
+    <flux:modal wire:model="showSearchModal" x-on:close="$wire.closeSearchModal()" class="space-y-6">
         <div>
             <flux:heading size="lg">{{ __('Pretraga članova') }}</flux:heading>
             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Filtrirajte listu članova po imenu ili email adresi.') }}</flux:text>
         </div>
 
         <flux:input wire:model.live.debounce.300ms="search" label="{{ __('Pretraga') }}" placeholder="{{ __('Upišite ime ili email...') }}" icon="magnifying-glass" clearable />
+
+        <div class="flex justify-end">
+            <flux:button type="button" variant="ghost" icon="x-mark" wire:click="closeSearchModal">
+                {{ __('Zatvori') }}
+            </flux:button>
+        </div>
     </flux:modal>
 
     <flux:modal wire:model="showInvitationsModal" flyout variant="floating" class="space-y-8">
         <div class="space-y-6 pt-4">
             <div>
                 <flux:heading size="lg">{{ __('Pozivnice') }}</flux:heading>
-                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pozovite nove korisnike i pratite status već poslanih pozivnica.') }}</flux:text>
+                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pozovite nove suradnike i pratite status već poslanih pozivnica.') }}</flux:text>
             </div>
 
             <div class="space-y-6">
@@ -173,7 +168,7 @@
     @if ($canUpdateTeam)
         <flux:modal wire:model="showBasicInfoModal" class="space-y-6">
             <div>
-                <flux:heading size="lg">{{ __('Postavke tima') }}</flux:heading>
+                <flux:heading size="lg">{{ __('Uredi tim') }}</flux:heading>
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Osnovni naziv koji se prikazuje u korisničkom sučelju.') }}</flux:text>
             </div>
 

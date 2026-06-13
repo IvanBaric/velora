@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use IvanBaric\Velora\Actions\CreatePersonalTeam;
+use IvanBaric\Velora\Console\SyncVeloraCommand;
+use IvanBaric\Velora\Contracts\PlanAccess;
 use IvanBaric\Velora\Events\InvitationAccepted;
 use IvanBaric\Velora\Http\Livewire\RoleManager;
 use IvanBaric\Velora\Http\Livewire\TeamCreate;
@@ -25,10 +27,12 @@ use IvanBaric\Velora\Http\Middleware\VerifyMembership;
 use IvanBaric\Velora\Listeners\SendTeamMemberJoinedNotifications;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Policies\TeamPolicy;
+use IvanBaric\Velora\Support\AllowAllPlanAccess;
 use IvanBaric\Velora\Support\PermissionRegistrar;
 use IvanBaric\Velora\Support\RolePreview;
 use IvanBaric\Velora\Support\SystemAccessSynchronizer;
 use IvanBaric\Velora\Support\TeamContextResolver;
+use IvanBaric\Velora\Support\TeamModelResolver;
 use IvanBaric\Velora\Support\UserModelResolver;
 use Livewire\Livewire;
 
@@ -43,6 +47,12 @@ class VeloraServiceProvider extends ServiceProvider
         $this->app->singleton(RolePreview::class);
         $this->app->singleton(SystemAccessSynchronizer::class);
         $this->app->singleton(UserModelResolver::class);
+        $this->app->singleton(TeamModelResolver::class);
+        $this->app->singleton(PlanAccess::class, function ($app): PlanAccess {
+            $resolver = config('velora.plan_access.resolver', AllowAllPlanAccess::class);
+
+            return $app->make(is_string($resolver) && $resolver !== '' ? $resolver : AllowAllPlanAccess::class);
+        });
 
         $helpers = __DIR__.'/helpers.php';
         if (file_exists($helpers)) {
@@ -53,6 +63,7 @@ class VeloraServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
         $viewOverridePaths = array_values(array_filter((array) config('velora.views.paths', []), fn ($path) => is_string($path) && $path !== ''));
 
         // Keep conventional override paths, but only register directories that exist.
@@ -66,6 +77,7 @@ class VeloraServiceProvider extends ServiceProvider
         );
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
+        Gate::policy(velora_team_model(), TeamPolicy::class);
         Gate::policy(Team::class, TeamPolicy::class);
 
         $this->registerGates();
@@ -89,6 +101,10 @@ class VeloraServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/velora'),
         ], 'velora-views');
+
+        $this->commands([
+            SyncVeloraCommand::class,
+        ]);
     }
 
     protected function registerGates(): void

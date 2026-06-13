@@ -32,7 +32,7 @@ final class SendInvitationAction
 
             if ($existing?->status === TeamInvitationStatus::Pending && ! $existing->isExpired()) {
                 throw ValidationException::withMessages([
-                    'email' => 'Za ovaj email već postoji aktivna pozivnica.',
+                    'email' => __('Za ovaj email već postoji aktivna pozivnica.'),
                 ]);
             }
 
@@ -73,13 +73,17 @@ final class SendInvitationAction
             plainToken: $plainToken,
             url: $url,
             roleLabel: $roleLabel,
-            message: 'Pozivnica je poslana na '.$invitation->email.'.',
+            message: __('Pozivnica je poslana na :email.', ['email' => $invitation->email]),
         );
     }
 
     protected function ensureUserIsNotAlreadyMember(string $email, int $teamId): void
     {
-        $user = velora_user_query()->where('email', $email)->first();
+        $normalizedEmail = TeamInvitation::normalizeEmail($email);
+        $user = velora_user_query()
+            ->whereRaw('lower(email) = ?', [$normalizedEmail])
+            ->first();
+
         if (! $user) {
             return;
         }
@@ -93,7 +97,7 @@ final class SendInvitationAction
 
         if ($isMember) {
             throw ValidationException::withMessages([
-                'email' => 'Korisnik je već član tima.',
+                'email' => __('Suradnik je već član tima.'),
             ]);
         }
     }
@@ -103,12 +107,13 @@ final class SendInvitationAction
         $exists = Role::query()
             ->availableToTeam($teamId)
             ->assignable()
+            ->notHidden()
             ->where('slug', $roleSlug)
             ->exists();
 
         if (! $exists) {
             throw ValidationException::withMessages([
-                'roleSlug' => 'Odabranu ulogu nije moguće dodijeliti.',
+                'roleSlug' => __('Odabranu ulogu nije moguće dodijeliti.'),
             ]);
         }
     }

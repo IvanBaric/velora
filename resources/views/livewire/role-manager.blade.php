@@ -9,8 +9,18 @@
                     </flux:text>
                 </div>
 
-                <flux:button wire:click="createRole" variant="primary" icon="plus">{{ __('Nova uloga') }}</flux:button>
+                @if ($rolesAndPermissionsAvailable)
+                    <flux:button wire:click="createRole" variant="primary" icon="plus">{{ __('Nova uloga') }}</flux:button>
+                @else
+                    <x-locked-plan-button :tooltip="$roleManagementBlockedMessage">
+                        {{ __('Nova uloga') }}
+                    </x-locked-plan-button>
+                @endif
             </div>
+
+            @unless ($rolesAndPermissionsAvailable)
+                <x-plan-notice :message="__('Roles and permissions are not included in your current plan. Existing access stays active, but custom role management is locked until you upgrade.')" />
+            @endunless
 
             <div class="grid gap-3 sm:grid-cols-2">
                 <div class="rounded-2xl bg-zinc-50/70 p-4 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10">
@@ -38,7 +48,7 @@
                     <div class="flex items-start justify-between gap-4">
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
-                                <h3 class="truncate text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">{{ $role->name }}</h3>
+                                <h3 class="truncate text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">{{ __($role->name) }}</h3>
 
                                 @if ($role->isGlobal())
                                     <span class="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-600 ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10">
@@ -111,10 +121,17 @@
                         </flux:text>
                     </div>
 
-                    <div class="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
-                        <flux:icon icon="check-circle" class="size-4" />
-                        <span x-text="(selected?.length ?? 0) + ' odabrano'"></span>
-                    </div>
+                    @unless ($isReadOnly)
+                        <flux:button type="submit" variant="primary" icon="check">
+                            <span>{{ __('Spremi ulogu') }}</span>
+                            <span class="text-xs opacity-80" x-text="'(' + (selected?.length ?? 0) + ' ' + @js(__('odabrano')) + ')'"></span>
+                        </flux:button>
+                    @else
+                        <div class="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
+                            <flux:icon icon="check-circle" class="size-4" />
+                            <span x-text="(selected?.length ?? 0) + ' ' + @js(__('odabrano'))"></span>
+                        </div>
+                    @endunless
                 </div>
             </div>
 
@@ -132,53 +149,31 @@
                             <div class="space-y-4">
                                 <flux:input wire:model="name" label="{{ __('Naziv') }}" placeholder="{{ __('Urednik, Podrška, Naplata...') }}" clearable :disabled="$isReadOnly" />
 
-                                <div @class([
-                                    'rounded-2xl px-4 py-3 text-sm ring-1',
-                                    'bg-zinc-50/70 text-zinc-600 ring-zinc-950/5 dark:bg-zinc-900/80 dark:text-zinc-300 dark:ring-white/10' => $isReadOnly,
-                                    'bg-accent/10 text-accent-content ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25' => ! $isReadOnly,
-                                ])>
-                                    <div class="flex items-start gap-2">
-                                        <flux:icon :icon="$isReadOnly ? 'lock-closed' : 'pencil-square'" class="mt-0.5 size-4 shrink-0" />
-                                        <span>{{ $isReadOnly ? __('Sistemske uloge dostupne su samo za pregled.') : __('Naziv i dozvole možete prilagoditi timu.') }}</span>
+                                @if ($isReadOnly)
+                                    <div class="rounded-2xl bg-zinc-50/70 px-4 py-3 text-sm text-zinc-600 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:text-zinc-300 dark:ring-white/10">
+                                        <div class="flex items-start gap-2">
+                                            <flux:icon icon="lock-closed" class="mt-0.5 size-4 shrink-0" />
+                                            <span>{{ __('Sistemske uloge dostupne su samo za pregled.') }}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                             </div>
                         </section>
 
-                        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10">
-                            <div class="mb-5 flex items-center gap-3">
-                                <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-50 text-zinc-500 ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-400 dark:ring-white/10">
-                                    <flux:icon icon="magnifying-glass" class="size-5" />
-                                </div>
-                                <flux:heading size="sm">{{ __('Alati za dozvole') }}</flux:heading>
-                            </div>
-
-                            <div class="space-y-4">
-                                <flux:input wire:model.live.debounce.250ms="permissionSearch" label="{{ __('Pretraži dozvole') }}" placeholder="{{ __('Pretraži po nazivu, oznaci ili kodu...') }}" clearable />
-
-                                @unless ($isReadOnly)
-                                    <div class="flex flex-col gap-2">
-                                        <flux:button type="button" wire:click="selectAllFilteredPermissions" variant="ghost" icon="check-circle">{{ __('Odaberi filtrirane') }}</flux:button>
-                                        <flux:button type="button" wire:click="selectAllPermissions" variant="ghost" icon="list-bullet">{{ __('Odaberi sve') }}</flux:button>
-                                        <flux:button type="button" wire:click="clearPermissions" variant="ghost" icon="x-circle">{{ __('Očisti odabir') }}</flux:button>
-                                    </div>
-                                @endunless
-                            </div>
-                        </section>
                     </aside>
 
                     <div class="space-y-4">
                         @forelse ($permissions as $permissionGroup)
-                            <details class="group rounded-2xl bg-white shadow-sm ring-1 ring-zinc-950/5 transition duration-150 ease-out open:ring-zinc-950/10 dark:bg-zinc-950 dark:ring-white/10 dark:open:ring-white/15" open>
+                            <details class="group rounded-2xl bg-white shadow-sm ring-1 ring-zinc-950/5 transition duration-150 ease-out open:ring-zinc-950/10 dark:bg-zinc-950 dark:ring-white/10 dark:open:ring-white/15">
                                 <summary class="cursor-pointer list-none p-5">
                                     <div class="flex items-start justify-between gap-4">
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
                                                 <flux:icon icon="chevron-right" class="size-4 shrink-0 text-zinc-400 transition duration-150 ease-out group-open:rotate-90 dark:text-zinc-500" />
-                                                <div class="truncate text-sm font-semibold text-zinc-950 dark:text-white">{{ $permissionGroup->label ?: $permissionGroup->name }}</div>
+                                                <div class="truncate text-sm font-semibold text-zinc-950 dark:text-white">{{ __($permissionGroup->label ?: $permissionGroup->name) }}</div>
                                             </div>
                                             @if ($permissionGroup->description)
-                                                <div class="mt-1 max-w-2xl ps-6 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ $permissionGroup->description }}</div>
+                                                <div class="mt-1 max-w-2xl ps-6 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ __($permissionGroup->description) }}</div>
                                             @endif
                                         </div>
 
@@ -192,8 +187,8 @@
                                             <label class="flex min-w-0 items-start gap-3 rounded-2xl bg-zinc-50/70 p-3 ring-1 ring-zinc-950/5 transition duration-150 ease-out hover:bg-white hover:ring-zinc-950/10 focus-within:bg-white focus-within:ring-zinc-950/15 dark:bg-zinc-900/80 dark:ring-white/10 dark:hover:bg-zinc-900 dark:hover:ring-white/15 dark:focus-within:bg-zinc-900 dark:focus-within:ring-white/20">
                                                 <flux:checkbox wire:model="selectedPermissionItems" value="{{ $item->uuid }}" class="mt-0.5" :disabled="$isReadOnly" />
                                                 <span class="min-w-0">
-                                                    <span class="block truncate text-sm font-medium text-zinc-950 dark:text-white">{{ $item->label ?: $item->name }}</span>
-                                                    <span class="mt-0.5 block truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $item->code }}</span>
+                                                    <span class="block truncate text-sm font-medium text-zinc-950 dark:text-white">{{ __($item->label ?: $item->name) }}</span>
+                                                    <span class="mt-0.5 block truncate text-xs text-zinc-500 dark:text-zinc-400">{{ __($item->code) }}</span>
                                                 </span>
                                             </label>
                                         @endforeach
@@ -213,14 +208,6 @@
                 </div>
             </div>
 
-            <div class="shrink-0 border-t border-zinc-100/70 bg-white/95 p-4 backdrop-blur dark:border-zinc-800/70 dark:bg-zinc-950/90">
-                <div class="mx-auto flex w-full max-w-7xl items-center justify-end gap-2">
-                    <flux:button type="button" wire:click="$set('isFormOpen', false)" variant="ghost">{{ __('Odustani') }}</flux:button>
-                    @unless ($isReadOnly)
-                        <flux:button type="submit" variant="primary">{{ __('Spremi ulogu') }}</flux:button>
-                    @endunless
-                </div>
-            </div>
         </form>
     </flux:modal>
 
@@ -232,7 +219,7 @@
             <div>
                 <flux:heading size="lg">{{ __('Obriši ulogu') }}</flux:heading>
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    {{ __('Ova radnja uklanja ulogu iz tima. Korisnici koji je koriste moraju dobiti zamjensku ulogu.') }}
+                    {{ __('Ova radnja uklanja ulogu iz tima. Suradnici koji je koriste moraju dobiti zamjensku ulogu.') }}
                 </flux:text>
             </div>
         </div>
@@ -240,22 +227,22 @@
         @if ($pendingDeleteUserCount > 0)
             @php
                 $pendingUserLabel = $pendingDeleteUserCount % 10 >= 2 && $pendingDeleteUserCount % 10 <= 4 && ($pendingDeleteUserCount % 100 < 12 || $pendingDeleteUserCount % 100 > 14)
-                    ? __('korisnika')
-                    : __('korisnika');
+                    ? __('suradnika')
+                    : __('suradnika');
             @endphp
 
             <div class="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-400/20">
-                {{ $pendingDeleteUserCount === 1 ? __('Ova je uloga trenutno dodijeljena jednom korisniku.') : __('Ova je uloga trenutno dodijeljena za :count :label.', ['count' => number_format($pendingDeleteUserCount, 0, ',', ' '), 'label' => $pendingUserLabel]) }}
+                {{ $pendingDeleteUserCount === 1 ? __('Ova je uloga trenutno dodijeljena jednom suradniku.') : __('Ova je uloga trenutno dodijeljena za :count :label.', ['count' => number_format($pendingDeleteUserCount, 0, ',', ' '), 'label' => $pendingUserLabel]) }}
             </div>
 
             <flux:select wire:model="replacementRoleUuid" label="{{ __('Zamjenska uloga') }}" placeholder="{{ __('Odaberite ulogu') }}" variant="listbox">
                 @foreach ($roles->filter(fn ($role) => $role->uuid !== $roleUuid) as $role)
-                    <flux:select.option value="{{ $role->uuid }}">{{ $role->name }}</flux:select.option>
+                    <flux:select.option value="{{ $role->uuid }}">{{ __($role->name) }}</flux:select.option>
                 @endforeach
             </flux:select>
         @else
             <div class="rounded-2xl bg-zinc-50/70 p-4 text-sm text-zinc-600 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:text-zinc-300 dark:ring-white/10">
-                {{ __('Na ovu ulogu nije dodijeljen nijedan korisnik. Možete je obrisati bez zamjenske uloge.') }}
+                {{ __('Na ovu ulogu nije dodijeljen nijedan suradnik. Možete je obrisati bez zamjenske uloge.') }}
             </div>
         @endif
 

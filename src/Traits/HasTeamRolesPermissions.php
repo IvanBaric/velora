@@ -14,7 +14,6 @@ use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Events\MembershipRoleSynced;
 use IvanBaric\Velora\Events\RoleAssigned;
 use IvanBaric\Velora\Models\Role;
-use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Models\UserRole;
 use IvanBaric\Velora\Support\RolePreview;
@@ -46,23 +45,23 @@ trait HasTeamRolesPermissions
         return $relation;
     }
 
-    public function assignRole(int|string|Role $role, Team|int|null $team = null, ?int $assignedByUserId = null): OperationResult
+    public function assignRole(int|string|Role $role, Model|int|null $team = null, ?int $assignedByUserId = null): OperationResult
     {
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
-            return OperationResult::failure('Uloga nije pronađena za ovaj tim.', code: 'role_not_found');
+            return OperationResult::failure(__('Uloga nije pronađena za ovaj tim.'), code: 'role_not_found');
         }
 
         if (! $this->roleAssignable($resolvedRole)) {
-            return OperationResult::failure('Ovu ulogu nije moguće dodijeliti.', code: 'role_not_assignable');
+            return OperationResult::failure(__('Ovu ulogu nije moguće dodijeliti.'), code: 'role_not_assignable');
         }
 
         $userId = $this->resolveRoleOwnerId();
         $existing = $this->currentRoleAssignment($userId, $teamId);
 
         if ($existing && $this->assignmentMatchesRole($existing, $resolvedRole)) {
-            return OperationResult::success('Uloga je već dodijeljena.', ['user_role_id' => $existing->getKey()], 'already_assigned');
+            return OperationResult::success(__('Uloga je već dodijeljena.'), ['user_role_id' => $existing->getKey()], 'already_assigned');
         }
 
         $userRole = $this->persistSingleRoleAssignment(
@@ -75,17 +74,17 @@ trait HasTeamRolesPermissions
         event(new RoleAssigned($userRole, $resolvedRole));
 
         return OperationResult::success(
-            $existing ? 'Uloga je uspješno ažurirana.' : 'Uloga je uspješno dodijeljena.',
+            $existing ? __('Uloga je uspješno ažurirana.') : __('Uloga je uspješno dodijeljena.'),
             ['user_role_id' => $userRole->getKey()],
         );
     }
 
-    public function removeRole(int|string|Role $role, Team|int|null $team = null): OperationResult
+    public function removeRole(int|string|Role $role, Model|int|null $team = null): OperationResult
     {
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
-            return OperationResult::failure('Uloga nije pronađena za ovaj tim.', code: 'role_not_found');
+            return OperationResult::failure(__('Uloga nije pronađena za ovaj tim.'), code: 'role_not_found');
         }
 
         $deleted = UserRole::query()
@@ -95,18 +94,18 @@ trait HasTeamRolesPermissions
             ->delete();
 
         if ($deleted === 0) {
-            return OperationResult::success('Uloga nije bila dodijeljena.', code: 'not_assigned');
+            return OperationResult::success(__('Uloga nije bila dodijeljena.'), code: 'not_assigned');
         }
 
-        return OperationResult::success('Uloga je uspješno uklonjena.');
+        return OperationResult::success(__('Uloga je uspješno uklonjena.'));
     }
 
-    public function syncRoles(array|Collection|EloquentCollection $roles, Team|int|null $team = null, ?int $assignedByUserId = null): OperationResult
+    public function syncRoles(array|Collection|EloquentCollection $roles, Model|int|null $team = null, ?int $assignedByUserId = null): OperationResult
     {
         $teamId = $this->resolveTeamId($team);
         $resolvedRoles = $this->resolveRolesCollection($roles, $teamId);
         if ($resolvedRoles->count() > 1) {
-            return OperationResult::failure('Po timu je moguće dodijeliti samo jednu ulogu.', code: 'multiple_roles_not_supported');
+            return OperationResult::failure(__('Po timu je moguće dodijeliti samo jednu ulogu.'), code: 'multiple_roles_not_supported');
         }
 
         $userId = $this->resolveRoleOwnerId();
@@ -114,7 +113,7 @@ trait HasTeamRolesPermissions
 
         if ($resolvedRole instanceof Role) {
             if (! $this->roleAssignable($resolvedRole)) {
-                return OperationResult::failure('Ovu ulogu nije moguće dodijeliti.', code: 'role_not_assignable');
+                return OperationResult::failure(__('Ovu ulogu nije moguće dodijeliti.'), code: 'role_not_assignable');
             }
 
             $existing = $this->currentRoleAssignment($userId, $teamId);
@@ -142,10 +141,10 @@ trait HasTeamRolesPermissions
             event(new MembershipRoleSynced($this, $roleSlugs));
         }
 
-        return OperationResult::success('Uloge su uspješno usklađene.');
+        return OperationResult::success(__('Uloge su uspješno usklađene.'));
     }
 
-    public function hasRole(int|string|Role $role, Team|int|null $team = null): bool
+    public function hasRole(int|string|Role $role, Model|int|null $team = null): bool
     {
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
@@ -161,7 +160,7 @@ trait HasTeamRolesPermissions
             ->exists();
     }
 
-    public function hasPermission(string $permissionCode, Team|int|null $team = null): bool
+    public function hasPermission(string $permissionCode, Model|int|null $team = null): bool
     {
         $teamId = $this->resolveTeamId($team);
 
@@ -198,7 +197,7 @@ trait HasTeamRolesPermissions
             ->exists();
     }
 
-    public function hasPermissionTo(string $permissionCode, Team|int|null $team = null): bool
+    public function hasPermissionTo(string $permissionCode, Model|int|null $team = null): bool
     {
         return $this->hasPermission($permissionCode, $team);
     }
@@ -333,9 +332,9 @@ trait HasTeamRolesPermissions
         return auth()->id() ? (int) auth()->id() : null;
     }
 
-    protected function resolveTeamId(Team|int|null $team = null): int
+    protected function resolveTeamId(Model|int|null $team = null): int
     {
-        if ($team instanceof Team) {
+        if ($team instanceof Model) {
             return (int) $team->getKey();
         }
 
@@ -358,10 +357,6 @@ trait HasTeamRolesPermissions
 
         if (isset($this->current_team_id) && $this->current_team_id) {
             return (int) $this->current_team_id;
-        }
-
-        if (isset($this->team_id) && $this->team_id) {
-            return (int) $this->team_id;
         }
 
         return null;

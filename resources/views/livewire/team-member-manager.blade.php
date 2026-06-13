@@ -1,7 +1,7 @@
 <div>
     @if ($memberships->isNotEmpty())
         <div class="admin-list-header lg:grid-cols-[minmax(0,1fr)_15rem_8rem_10rem_5rem]">
-            <span>{{ __('Korisnik') }}</span>
+            <span>{{ __('Suradnik') }}</span>
             <span>{{ __('Email') }}</span>
             <span>{{ __('Status') }}</span>
             <span>{{ __('Uloga') }}</span>
@@ -28,7 +28,7 @@
 
                 <div class="min-w-0">
                     <h3 class="truncate text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">
-                        {{ $user?->name ?: __('Nepoznat korisnik') }}
+                        {{ $user?->name ?: __('Nepoznat suradnik') }}
                     </h3>
                     <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
                         {{ $membership->joined_at ? __('Pridružen :date', ['date' => $membership->joined_at->format('d.m.Y.')]) : __('Članstvo u obradi') }}
@@ -58,7 +58,7 @@
                                 'bg-zinc-100 text-zinc-600 ring-zinc-950/5 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10' => $membership->status !== \IvanBaric\Velora\Enums\TeamMembershipStatus::Active && $membership->status !== \IvanBaric\Velora\Enums\TeamMembershipStatus::Suspended,
                             ])>
                                 <flux:icon :icon="$membership->status?->icon() ?? 'minus-circle'" class="size-3.5" />
-                                {{ ucfirst((string) ($membership->status?->value ?? 'unknown')) }}
+                                {{ $membership->status?->label() ?? __('Nepoznat status') }}
                             </span>
                         @endif
                     </span>
@@ -70,7 +70,7 @@
                 @if ($role)
                     <span class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200">
                         <flux:icon icon="shield-check" variant="micro" class="size-4 text-accent-content" />
-                        {{ $role->name }}
+                        {{ __($role->name) }}
                     </span>
                 @else
                     <x-admin-ui::empty-value />
@@ -79,7 +79,7 @@
 
             <div class="flex justify-start lg:justify-end">
                 <flux:dropdown position="bottom" align="end">
-                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije korisnika') }}" />
+                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije suradnika') }}" />
 
                     <flux:menu>
                         <flux:menu.item icon="information-circle" wire:click="openMembershipDetails('{{ $membership->uuid }}')">
@@ -87,7 +87,7 @@
                         </flux:menu.item>
 
                         @if (! $membership->is_owner)
-                            <flux:menu.item icon="shield-check" wire:click="requestRoleChange('{{ $membership->uuid }}')">
+                            <flux:menu.item icon="shield-check" wire:click="requestRoleChange('{{ $membership->uuid }}')" :disabled="! $rolesAndPermissionsAvailable">
                                 {{ __('Promijeni ulogu') }}
                             </flux:menu.item>
                             <flux:menu.separator />
@@ -101,12 +101,20 @@
         </article>
     @empty
         <x-admin-ui::empty-state
-            :title="__('Nema članova')"
-            :description="__('Pozovite prvog korisnika kako bi se pojavio u ovom popisu.')"
+            :title="$search !== '' ? __('Nema rezultata') : __('Nema suradnika')"
+            :description="$search !== '' ? __('Nijedan suradnik ne odgovara trenutnoj pretrazi.') : __('Pozovite prvog suradnika kako bi se pojavio u ovom popisu.')"
         >
             <x-slot:icon>
-                <flux:icon icon="users" class="size-6" />
+                <flux:icon :icon="$search !== '' ? 'magnifying-glass' : 'users'" class="size-6" />
             </x-slot:icon>
+
+            @if ($search !== '')
+                <x-slot:actions>
+                    <flux:button type="button" variant="ghost" size="sm" icon="x-mark" wire:click="clearSearch">
+                        {{ __('Očisti pretragu') }}
+                    </flux:button>
+                </x-slot:actions>
+            @endif
         </x-admin-ui::empty-state>
     @endforelse
 
@@ -119,7 +127,7 @@
     <flux:modal wire:model="showMembershipDetailsModal" class="w-full max-w-2xl space-y-6">
         @if ($membershipDetails)
             @php
-                $detailsName = data_get($membershipDetails, 'user.name') ?: __('Nepoznat korisnik');
+                $detailsName = data_get($membershipDetails, 'user.name') ?: __('Nepoznat suradnik');
                 $detailsEmail = data_get($membershipDetails, 'user.email') ?: data_get($membershipDetails, 'invited_email');
                 $detailsInitials = collect(explode(' ', trim((string) $detailsName)))
                     ->filter()
@@ -172,7 +180,7 @@
                             <dt class="text-zinc-500 dark:text-zinc-400">{{ __('Uloga') }}</dt>
                             <dd class="inline-flex min-w-0 items-center gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
                                 <flux:icon icon="shield-check" variant="micro" class="size-4 shrink-0 text-accent-content" />
-                                <span class="truncate">{{ data_get($membershipDetails, 'role') ?: __('Bez uloge') }}</span>
+                                <span class="truncate">{{ data_get($membershipDetails, 'role') ? __(data_get($membershipDetails, 'role')) : __('Bez uloge') }}</span>
                             </dd>
                         </div>
 
@@ -248,7 +256,7 @@
 
         <flux:select wire:model="pendingRole" label="{{ __('Uloga') }}" variant="listbox">
             @foreach ($availableRoles as $slug => $roleName)
-                <flux:select.option value="{{ $slug }}">{{ $roleName }}</flux:select.option>
+                <flux:select.option value="{{ $slug }}">{{ __($roleName) }}</flux:select.option>
             @endforeach
         </flux:select>
 
@@ -263,7 +271,7 @@
             <flux:heading size="lg">{{ __('Ukloni člana') }}</flux:heading>
         </div>
 
-        <flux:text>{{ __('Ukloniti korisnika :name iz ovog tima?', ['name' => $pendingRemoveUserName]) }}</flux:text>
+        <flux:text>{{ __('Ukloniti suradnika :name iz ovog tima?', ['name' => $pendingRemoveUserName]) }}</flux:text>
 
         <div class="flex justify-end gap-2">
             <flux:button wire:click="cancelRemoveMember" variant="ghost">{{ __('Odustani') }}</flux:button>

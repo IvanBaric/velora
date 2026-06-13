@@ -14,11 +14,11 @@ final class RemoveTeamMemberAction
     public function execute(TeamMembership $membership, ?int $actorUserId = null): ActionResult
     {
         if ($membership->is_owner) {
-            return ActionResult::error('Vlasnika tima nije moguće ukloniti.');
+            return ActionResult::error(__('Vlasnika tima nije moguće ukloniti.'));
         }
 
         if (! $membership->canRevoke()) {
-            return ActionResult::error('Članstvo je već opozvano.');
+            return ActionResult::error(__('Članstvo je već opozvano.'));
         }
 
         return DB::transaction(function () use ($membership, $actorUserId): ActionResult {
@@ -34,7 +34,7 @@ final class RemoveTeamMemberAction
             $result = $membership->revoke($actorUserId);
 
             return $result->success
-                ? ActionResult::success('Član je uklonjen iz tima.')
+                ? ActionResult::success(__('Član je uklonjen iz tima.'))
                 : $result;
         });
     }

@@ -18,6 +18,7 @@ use IvanBaric\Velora\Actions\CreateInvitedUserAction;
 use IvanBaric\Velora\Actions\PreviewInvitationAction;
 use IvanBaric\Velora\Data\AcceptedInvitationData;
 use IvanBaric\Velora\Data\InvitationPreviewData;
+use IvanBaric\Velora\Models\TeamInvitation;
 
 final class TeamInvitationService
 {
@@ -61,7 +62,7 @@ final class TeamInvitationService
         $existingUser = $preview->existingUser;
         $currentUser = $this->currentUser();
 
-        if ($currentUser && $currentUser->email !== $invitation->email) {
+        if ($currentUser && TeamInvitation::normalizeEmail((string) $currentUser->email) !== $invitation->email) {
             Auth::logout();
             $currentUser = null;
         }
@@ -101,7 +102,7 @@ final class TeamInvitationService
 
         if (! Hash::check((string) $request->string('password'), (string) $existingUser->getAttribute('password'))) {
             throw ValidationException::withMessages([
-                'password' => 'Lozinka nije točna.',
+                'password' => __('Lozinka nije točna.'),
             ]);
         }
 
@@ -119,7 +120,7 @@ final class TeamInvitationService
             $seconds = RateLimiter::availableIn($rateKey);
 
             throw ValidationException::withMessages([
-                'email' => "Previše pokušaja. Pokušajte ponovno za {$seconds} sekundi.",
+                'email' => __('Previše pokušaja. Pokušajte ponovno za :seconds sekundi.', ['seconds' => $seconds]),
             ]);
         }
 

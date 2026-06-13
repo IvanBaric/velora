@@ -4,26 +4,21 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Policies;
 
-use IvanBaric\Velora\Models\Team;
+use Illuminate\Database\Eloquent\Model;
 use IvanBaric\Velora\Support\TeamPermissions;
 
 class TeamPolicy
 {
-    public function update(mixed $user, Team $team): bool
+    public function update(mixed $user, Model $team): bool
     {
         if (! $user || ! method_exists($user, 'memberships')) {
             return false;
         }
 
-        $membership = $user->memberships()
-            ->withoutGlobalScopes()
-            ->where('team_id', $team->getKey())
-            ->first();
-
-        return (bool) $membership?->is_owner;
+        return (bool) $user->hasPermission(TeamPermissions::TEAMS_UPDATE, $team);
     }
 
-    public function manageMembers(mixed $user, Team $team): bool
+    public function manageMembers(mixed $user, Model $team): bool
     {
         if (! $user || ! method_exists($user, 'memberships')) {
             return false;

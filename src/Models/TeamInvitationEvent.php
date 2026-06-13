@@ -31,14 +31,11 @@ class TeamInvitationEvent extends Model
 
     public function team(): BelongsTo
     {
-        return $this->belongsTo(Team::class);
+        return $this->belongsTo(velora_team_model());
     }
 
     public function actor(): BelongsTo
     {
-        /** @var class-string<Model> $userModel */
-        $userModel = (string) config('velora.models.user');
-
-        return $this->belongsTo($userModel, 'actor_user_id');
+        return $this->belongsTo(velora_user_model(), 'actor_user_id');
     }
 }
