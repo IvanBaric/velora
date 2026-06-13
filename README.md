@@ -19,6 +19,7 @@ It is designed as a backend-first package:
 - Configurable current-team resolution strategy.
 - Configurable user model via `velora.models.user`.
 - Permission gate delegation, middleware aliases, and Blade directives.
+- Optional entitlement integration through `VeloraEntitlements`.
 - Optional Livewire + Flux UI for `/app/team`.
 
 ## Requirements
@@ -28,10 +29,11 @@ It is designed as a backend-first package:
 
 Optional UI dependencies:
 
+- `ivanbaric/admin-ui`
 - `livewire/livewire`
 - `livewire/flux`
 
-If you only use the backend layer, you do not need Livewire or Flux.
+If you only use the backend layer, you do not need Admin UI, Livewire, or Flux.
 
 ## Installation
 
@@ -44,7 +46,7 @@ composer require ivanbaric/velora
 Install optional UI dependencies only if you want the packaged UI:
 
 ```bash
-composer require livewire/livewire livewire/flux
+composer require ivanbaric/admin-ui livewire/livewire livewire/flux
 ```
 
 Run migrations:
@@ -95,13 +97,14 @@ class User extends Authenticatable
 }
 ```
 
-### 2. Configure a custom user model if needed
+### 2. Configure user and team models if needed
 
-By default the config points to `App\Models\User`. If your app uses a different model, set it in `config/velora.php`:
+Velora resolves models through `config/velora.php`. If `velora.models.user` is not set, Velora falls back to Laravel's `auth.providers.users.model`. The default team model is `IvanBaric\Velora\Models\Team`.
 
 ```php
 'models' => [
     'user' => App\Models\AdminUser::class,
+    'team' => App\Models\Team::class,
 ],
 ```
 
@@ -167,6 +170,8 @@ Key options in `config/velora.php`:
 - `velora.routes.public_middleware`
 - `velora.views.layouts.app`
 - `velora.views.components.auth_layout`
+
+The package config keeps route middleware generic by default: `web`, `auth`, and `set.team`. Add app-specific middleware such as onboarding guards or domain guards in the host application's published config.
 
 ### View overrides
 
@@ -350,6 +355,28 @@ Velora separates "who may act" from domain transitions:
 - `TeamPolicy` answers authorization questions
 - membership and invitation models/actions answer state-transition questions
 
+## Entitlements
+
+Velora does not depend directly on a billing or plans package.
+
+Plan-aware behavior is exposed through the `IvanBaric\Velora\Contracts\VeloraEntitlements` contract. Velora registers `IvanBaric\Velora\Support\AllowsAllVeloraEntitlements` by default, so a standalone Velora install allows team invitations and role management unless the host application binds a stricter implementation.
+
+The contract controls:
+
+- whether the current team can invite another member
+- whether the current team can manage custom roles and permissions
+- which plan code should be assigned when Velora creates a team with a `plan_code` column
+
+To integrate another package or app-specific limits, bind the contract in a service provider:
+
+```php
+use IvanBaric\Velora\Contracts\VeloraEntitlements;
+
+$this->app->singleton(VeloraEntitlements::class, App\Support\AppVeloraEntitlements::class);
+```
+
+When `ivanbaric/plans-entitlements` is installed, it can bind its own adapter for this contract and enforce its existing team member limits and `roles_and_permissions` feature flag. Velora only talks to the contract; the plans package owns the plan-specific rules.
+
 ### Gate integration
 
 Velora registers a gate delegate so permission codes can be used directly:
@@ -418,7 +445,7 @@ If Livewire is installed, Velora registers:
 - `teams.team-dropdown`
 - `roles.role-manager`
 
-The packaged views use Flux components. If you do not install Flux, the backend layer still works, but the packaged UI should not be used.
+The packaged views use `ivanbaric/admin-ui` layout primitives and Flux components. If you do not install Admin UI and Flux, the backend layer still works, but the packaged UI should not be used.
 
 Example:
 

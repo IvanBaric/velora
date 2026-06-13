@@ -21,7 +21,7 @@ class RolePreviewController
 
         $preview->start($role, (int) $team->getKey());
 
-        return new RedirectResponse(route((string) config('velora.role_preview.redirect_route', 'app.dashboard')));
+        return new RedirectResponse(route((string) config('velora.role_preview.redirect_route', 'teams.settings')));
     }
 
     public function stop(RolePreview $preview): RedirectResponse

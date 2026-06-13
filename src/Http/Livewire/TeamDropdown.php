@@ -19,7 +19,7 @@ class TeamDropdown extends Component
     public function render(): View
     {
         return view('velora::livewire.team-dropdown', [
-            'currentTeam' => team(),
+            'activeTeam' => team(),
             // memberships() is scoped to the current team; dropdown must show all teams the user belongs to.
             'allTeams' => auth()->user()?->memberships()->withoutGlobalScopes()->with('team')->get()
                 ->pluck('team')

@@ -29,7 +29,7 @@ final class TeamSwitchController
 
         set_current_team($team);
 
-        $redirectRoute = (string) config('velora.team_switch.redirect_route', 'app.dashboard');
+        $redirectRoute = (string) config('velora.team_switch.redirect_route', 'teams.settings');
         $redirect = Route::has($redirectRoute)
             ? redirect()->route($redirectRoute)
             : redirect()->to('/');

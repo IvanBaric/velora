@@ -63,6 +63,8 @@ final class GrantablePermissions
 
     private function isGlobalSuperadmin(Model $user): bool
     {
-        return isset($user->is_superadmin) && (bool) $user->is_superadmin;
+        $attribute = config('velora.access.superadmin_attribute');
+
+        return is_string($attribute) && $attribute !== '' && (bool) data_get($user, $attribute);
     }
 }

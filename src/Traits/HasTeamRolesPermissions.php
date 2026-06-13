@@ -234,7 +234,9 @@ trait HasTeamRolesPermissions
 
     protected function isGlobalSuperadmin(): bool
     {
-        return isset($this->is_superadmin) && (bool) $this->is_superadmin;
+        $attribute = config('velora.access.superadmin_attribute');
+
+        return is_string($attribute) && $attribute !== '' && (bool) data_get($this, $attribute);
     }
 
     protected function resolveRolesCollection(array|Collection|EloquentCollection $roles, int $teamId): Collection

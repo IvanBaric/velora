@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\Team;
-use App\Models\User;
 use IvanBaric\Velora\Support\TeamPermissions;
 
 return [
@@ -51,8 +49,12 @@ return [
     ],
 
     'models' => [
-        'user' => User::class,
-        'team' => Team::class,
+        'user' => env('VELORA_USER_MODEL'),
+        'team' => env('VELORA_TEAM_MODEL', IvanBaric\Velora\Models\Team::class),
+    ],
+
+    'access' => [
+        'superadmin_attribute' => env('VELORA_SUPERADMIN_ATTRIBUTE'),
     ],
 
     'plan_access' => [
@@ -64,8 +66,12 @@ return [
         'strategy' => env('VELORA_CURRENT_TEAM_STRATEGY', 'strict'),
         'default_team_name' => env('VELORA_DEFAULT_TEAM_NAME', 'Zadani tim'),
         'system_team_name' => env('VELORA_SYSTEM_TEAM_NAME', 'Sistemski tim'),
-        'default_template' => env('VELORA_DEFAULT_TEAM_TEMPLATE', 'clean'),
-        'default_business_type' => env('VELORA_DEFAULT_TEAM_BUSINESS_TYPE', 'other'),
+        'default_attributes' => [
+            'template' => env('VELORA_DEFAULT_TEAM_TEMPLATE', 'clean'),
+            'is_active' => true,
+        ],
+        'user_team_id_column' => env('VELORA_USER_TEAM_ID_COLUMN', 'current_team_id'),
+        'user_team_relation' => env('VELORA_USER_TEAM_RELATION'),
     ],
 
     'create_personal_team_on_registration' => env('VELORA_CREATE_PERSONAL_TEAM_ON_REGISTRATION', false),
@@ -88,12 +94,16 @@ return [
     ],
 
     'role_preview' => [
-        'redirect_route' => env('VELORA_ROLE_PREVIEW_REDIRECT_ROUTE', 'app.dashboard'),
+        'redirect_route' => env('VELORA_ROLE_PREVIEW_REDIRECT_ROUTE', 'teams.settings'),
         'exit_redirect_route' => env('VELORA_ROLE_PREVIEW_EXIT_REDIRECT_ROUTE', 'teams.settings'),
     ],
 
     'team_switch' => [
-        'redirect_route' => env('VELORA_TEAM_SWITCH_REDIRECT_ROUTE', 'app.dashboard'),
+        'redirect_route' => env('VELORA_TEAM_SWITCH_REDIRECT_ROUTE', 'teams.settings'),
+    ],
+
+    'team_settings' => [
+        'leave_redirect_route' => env('VELORA_TEAM_SETTINGS_LEAVE_REDIRECT_ROUTE', 'teams.settings'),
     ],
 
     'invitations' => [
@@ -104,96 +114,34 @@ return [
     'routes' => [
         'prefix' => env('VELORA_ROUTES_PREFIX', 'app'),
         'team_segment' => env('VELORA_ROUTES_TEAM_SEGMENT', 'teams'),
-        'authenticated_middleware' => ['web', 'auth', 'onboarding_guard', \App\Http\Middleware\EnsureMainDomain::class, 'set.team'],
+        'authenticated_middleware' => ['web', 'auth', 'set.team'],
         'public_middleware' => ['web'],
     ],
 
     'permissions' => [
         [
-            'name' => 'Dashboard',
-            'slug' => 'dashboard',
-            'label' => 'Dashboard',
-            'description' => 'Pregled osnovnog stanja, preporuka i brzih akcija.',
-            'icon' => 'layout-grid',
-            'sort_order' => 5,
-            'items' => [
-                ['name' => 'Pregled', 'slug' => 'view', 'code' => TeamPermissions::DASHBOARD_VIEW, 'label' => 'Pregled dashboarda', 'sort_order' => 10],
-            ],
-        ],
-        [
-            'name' => 'Sadržaj',
-            'slug' => 'content',
-            'label' => 'Sadržaj',
-            'description' => 'Upravljanje ponudom i sadržajem javnih stranica.',
-            'icon' => 'document-text',
-            'sort_order' => 8,
-            'items' => [
-                ['name' => 'Javna stranica', 'slug' => 'public_page_update', 'code' => TeamPermissions::PUBLIC_PAGE_UPDATE, 'label' => 'Uređivanje javne stranice', 'sort_order' => 20],
-            ],
-        ],
-        [
-            'name' => 'Timovi',
+            'name' => 'Teams',
             'slug' => 'teams',
-            'label' => 'Timovi',
-            'description' => 'Upravljanje timovima, članovima i ulogama.',
+            'label' => 'Teams',
+            'description' => 'Team, member, and role management.',
             'icon' => 'users',
             'sort_order' => 10,
             'items' => [
-                ['name' => 'Pregled', 'slug' => 'view', 'code' => TeamPermissions::TEAMS_VIEW, 'label' => 'Pregled timova', 'sort_order' => 10],
-                ['name' => 'Uređivanje', 'slug' => 'update', 'code' => TeamPermissions::TEAMS_UPDATE, 'label' => 'Uređivanje timova', 'sort_order' => 30],
-                ['name' => 'Brisanje', 'slug' => 'delete', 'code' => TeamPermissions::TEAMS_DELETE, 'label' => 'Brisanje timova', 'sort_order' => 40],
-                ['name' => 'Upravljanje članovima', 'slug' => 'manage_members', 'code' => TeamPermissions::MANAGE_MEMBERS, 'label' => 'Upravljanje članovima', 'sort_order' => 50],
-                ['name' => 'Upravljanje ulogama', 'slug' => 'manage_roles', 'code' => TeamPermissions::MANAGE_ROLES, 'label' => 'Upravljanje ulogama', 'sort_order' => 60],
-            ],
-        ],
-        [
-            'name' => 'QR cjenici',
-            'slug' => 'qr',
-            'label' => 'QR cjenici',
-            'description' => 'Upravljanje QR cjenicima, sekcijama, stavkama, prijevodima i povezanim alatima.',
-            'icon' => 'qr-code',
-            'sort_order' => 20,
-            'items' => [
-                ['name' => 'Upravljanje sadržajem', 'slug' => 'manage', 'code' => TeamPermissions::QR_MANAGE, 'label' => 'Upravljanje cjenikom', 'sort_order' => 10],
-                ['name' => 'Arhiviranje i brisanje', 'slug' => 'delete', 'code' => TeamPermissions::QR_DELETE, 'label' => 'Arhiviranje i brisanje cjenika', 'sort_order' => 20],
-                ['name' => 'Rasporedi', 'slug' => 'schedules_manage', 'code' => TeamPermissions::QR_SCHEDULES_MANAGE, 'label' => 'Upravljanje rasporedima i promocijama', 'sort_order' => 30],
-                ['name' => 'Prijevodi', 'slug' => 'languages_manage', 'code' => TeamPermissions::LANGUAGES_MANAGE, 'label' => 'Upravljanje jezicima i prijevodima', 'sort_order' => 40],
-                ['name' => 'Izgled', 'slug' => 'appearance_update', 'code' => TeamPermissions::APPEARANCE_UPDATE, 'label' => 'Uređivanje izgleda cjenika', 'sort_order' => 50],
-                ['name' => 'Dijeljenje', 'slug' => 'share_manage', 'code' => TeamPermissions::SHARE_MANAGE, 'label' => 'Dijeljenje i QR materijali', 'sort_order' => 60],
-                ['name' => 'Analitika', 'slug' => 'analytics_view', 'code' => TeamPermissions::ANALYTICS_VIEW, 'label' => 'Pregled analitike', 'sort_order' => 70],
-            ],
-        ],
-        [
-            'name' => 'Poslovanje',
-            'slug' => 'business',
-            'label' => 'Poslovanje',
-            'description' => 'Uređivanje javnih poslovnih informacija.',
-            'icon' => 'building-office',
-            'sort_order' => 30,
-            'items' => [
-                ['name' => 'Uređivanje', 'slug' => 'update', 'code' => TeamPermissions::BUSINESS_UPDATE, 'label' => 'Uređivanje poslovnih informacija', 'sort_order' => 10],
-            ],
-        ],
-        [
-            'name' => 'Administracija',
-            'slug' => 'administration',
-            'label' => 'Administracija',
-            'description' => 'Naplata, postavke, audit log i tehničke postavke tima.',
-            'icon' => 'cog-6-tooth',
-            'sort_order' => 40,
-            'items' => [
-                ['name' => 'Naplata', 'slug' => 'billing_manage', 'code' => TeamPermissions::BILLING_MANAGE, 'label' => 'Upravljanje naplatom', 'sort_order' => 10],
-                ['name' => 'Postavke', 'slug' => 'settings_view', 'code' => TeamPermissions::SETTINGS_VIEW, 'label' => 'Pregled postavki', 'sort_order' => 20],
-                ['name' => 'Audit log', 'slug' => 'audit_view', 'code' => TeamPermissions::AUDIT_VIEW, 'label' => 'Pregled audit loga', 'sort_order' => 30],
+                ['name' => 'View', 'slug' => 'view', 'code' => TeamPermissions::TEAMS_VIEW, 'label' => 'View teams', 'sort_order' => 10],
+                ['name' => 'Update', 'slug' => 'update', 'code' => TeamPermissions::TEAMS_UPDATE, 'label' => 'Update teams', 'sort_order' => 30],
+                ['name' => 'Delete', 'slug' => 'delete', 'code' => TeamPermissions::TEAMS_DELETE, 'label' => 'Delete teams', 'sort_order' => 40],
+                ['name' => 'Manage members', 'slug' => 'manage_members', 'code' => TeamPermissions::MANAGE_MEMBERS, 'label' => 'Manage members', 'sort_order' => 50],
+                ['name' => 'Manage roles', 'slug' => 'manage_roles', 'code' => TeamPermissions::MANAGE_ROLES, 'label' => 'Manage roles', 'sort_order' => 60],
             ],
         ],
     ],
+
     'system_roles' => [
         [
-            'name' => 'Superadministrator',
-            'slug' => 'superadmin',
-            'label' => 'Superadministrator',
-            'description' => 'Sistemska uloga s punim pristupom.',
+            'name' => 'Owner',
+            'slug' => 'owner',
+            'label' => 'Owner',
+            'description' => 'System role with full team access.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,
@@ -206,7 +154,7 @@ return [
             'name' => 'Administrator',
             'slug' => 'admin',
             'label' => 'Administrator',
-            'description' => 'Sistemska administratorska uloga tima s pristupom svim administrativnim modulima.',
+            'description' => 'Team administrator role.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,
@@ -216,10 +164,10 @@ return [
             'all_permissions' => true,
         ],
         [
-            'name' => 'Uređivač',
+            'name' => 'Member',
             'slug' => 'member',
-            'label' => 'Uređivač',
-            'description' => 'Može uređivati operativni sadržaj: dashboard, QR cjenik, prijevode i poslovne informacije.',
+            'label' => 'Member',
+            'description' => 'Default team member role.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,
@@ -227,10 +175,7 @@ return [
             'is_active' => true,
             'sort_order' => 30,
             'permissions' => [
-                TeamPermissions::DASHBOARD_VIEW,
-                TeamPermissions::QR_MANAGE,
-                TeamPermissions::LANGUAGES_MANAGE,
-                TeamPermissions::BUSINESS_UPDATE,
+                TeamPermissions::TEAMS_VIEW,
             ],
         ],
     ],

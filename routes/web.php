@@ -16,8 +16,8 @@ $teamBasePath = '/'.trim((string) config('velora.routes.prefix', 'app'), '/')
 
 if (class_exists(Livewire::class)) {
     Route::middleware(config('velora.routes.authenticated_middleware'))->group(function () use ($teamBasePath): void {
-    Route::get($teamBasePath, TeamSettings::class)->middleware('permission:'.TeamPermissions::TEAMS_VIEW)->name('teams.settings');
-    Route::get($teamBasePath.'/create', TeamCreate::class)->middleware('permission:'.TeamPermissions::TEAMS_CREATE)->name('teams.create');
+        Route::get($teamBasePath, TeamSettings::class)->middleware('permission:'.TeamPermissions::TEAMS_VIEW)->name('teams.settings');
+        Route::get($teamBasePath.'/create', TeamCreate::class)->middleware('permission:'.TeamPermissions::TEAMS_CREATE)->name('teams.create');
         Route::get($teamBasePath.'/switch/{team}', TeamSwitchController::class)->name('teams.switch');
         Route::post($teamBasePath.'/roles/preview/{role}', [RolePreviewController::class, 'start'])->name('teams.roles.preview');
         Route::delete($teamBasePath.'/roles/preview', [RolePreviewController::class, 'stop'])->name('teams.roles.preview.stop');

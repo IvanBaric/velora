@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Support;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,7 +20,13 @@ class UserModelResolver
             return $configured;
         }
 
-        return User::class;
+        $authModel = config('auth.providers.users.model');
+
+        if (is_string($authModel) && class_exists($authModel)) {
+            return $authModel;
+        }
+
+        throw new \RuntimeException('Configure velora.models.user or auth.providers.users.model with an Eloquent model class.');
     }
 
     public function instance(): Model

@@ -125,7 +125,9 @@ class TeamContextResolver
 
     protected function userCanUseTeam(mixed $user, int $teamId): bool
     {
-        if (isset($user->is_superadmin) && (bool) $user->is_superadmin) {
+        $superadminAttribute = config('velora.access.superadmin_attribute');
+
+        if (is_string($superadminAttribute) && $superadminAttribute !== '' && (bool) data_get($user, $superadminAttribute)) {
             return $this->teams->query()->whereKey($teamId)->exists();
         }
 
@@ -157,16 +159,22 @@ class TeamContextResolver
         }
 
         try {
-            if (! $user->getConnection()->getSchemaBuilder()->hasColumn($user->getTable(), 'current_team_id')) {
+            $column = (string) config('velora.current_team.user_team_id_column', 'current_team_id');
+
+            if ($column === '' || ! $user->getConnection()->getSchemaBuilder()->hasColumn($user->getTable(), $column)) {
                 return;
             }
 
-            if ((int) ($user->getAttribute('current_team_id') ?? 0) === $teamId) {
+            if ((int) ($user->getAttribute($column) ?? 0) === $teamId) {
                 return;
             }
 
-            $user->forceFill(['current_team_id' => $teamId])->saveQuietly();
-            $user->unsetRelation('currentTeam');
+            $user->forceFill([$column => $teamId])->saveQuietly();
+
+            $relation = config('velora.current_team.user_team_relation');
+            if (is_string($relation) && $relation !== '') {
+                $user->unsetRelation($relation);
+            }
         } catch (\Throwable) {
             // Some host applications may use a read-only or custom user model.
         }
@@ -234,16 +242,12 @@ class TeamContextResolver
         try {
             $schema = $this->teams->instance()->getConnection()->getSchemaBuilder();
 
-            if ($schema->hasColumn($table, 'template')) {
-                $defaults['template'] = (string) config('velora.current_team.default_template', 'clean');
-            }
+            foreach ((array) config('velora.current_team.default_attributes', []) as $column => $value) {
+                if (! is_string($column) || $column === '' || ! $schema->hasColumn($table, $column)) {
+                    continue;
+                }
 
-            if ($schema->hasColumn($table, 'business_type')) {
-                $defaults['business_type'] = (string) config('velora.current_team.default_business_type', 'other');
-            }
-
-            if ($schema->hasColumn($table, 'is_active')) {
-                $defaults['is_active'] = true;
+                $defaults[$column] = $value;
             }
         } catch (\Throwable) {
             return [];

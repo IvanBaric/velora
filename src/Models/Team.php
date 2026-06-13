@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Models;
 
-use App\Models\Team as ApplicationTeam;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,8 +35,9 @@ class Team extends Model
                 $team->setAttribute('slug', $team->generateUniqueSlug((string) $team->getAttribute('name')));
             }
 
-            if (! $team->getAttribute('shortcode') && method_exists(ApplicationTeam::class, 'generateUniqueShortcode')) {
-                $team->setAttribute('shortcode', ApplicationTeam::generateUniqueShortcode());
+            $teamClass = velora_team_model();
+            if (! $team->getAttribute('shortcode') && method_exists($teamClass, 'generateUniqueShortcode')) {
+                $team->setAttribute('shortcode', $teamClass::generateUniqueShortcode());
             }
         });
     }

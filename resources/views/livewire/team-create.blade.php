@@ -15,8 +15,8 @@
         </form>
     </div>
 @else
-    <div class="mx-auto max-w-2xl p-6">
-        <flux:card class="space-y-6">
+    <x-admin-ui::page class="max-w-2xl">
+        <x-admin-ui::panel class="space-y-6 p-6">
             <div>
                 <flux:heading size="lg">{{ __('Novi tim') }}</flux:heading>
                 <flux:subheading>{{ __('Kreirajte novi radni prostor i automatski postanite vlasnik.') }}</flux:subheading>
@@ -30,6 +30,6 @@
                     <flux:button type="submit" variant="primary">{{ __('Kreiraj tim') }}</flux:button>
                 </div>
             </form>
-        </flux:card>
-    </div>
+        </x-admin-ui::panel>
+    </x-admin-ui::page>
 @endif
