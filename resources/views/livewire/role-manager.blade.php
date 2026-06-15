@@ -69,7 +69,9 @@
                         </div>
 
                         <flux:dropdown position="bottom" align="end">
-                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije uloge') }}" />
+                            <flux:tooltip :content="__('Otvori akcije za ovu ulogu')">
+                                <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije uloge') }}" />
+                            </flux:tooltip>
 
                             <flux:menu>
                                 <form method="POST" action="{{ route('teams.roles.preview', ['role' => $role]) }}">

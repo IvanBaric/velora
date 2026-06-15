@@ -22,6 +22,14 @@ class Team extends Model
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'active_until' => 'date',
+            'is_active' => 'boolean',
+        ];
+    }
+
     protected static function booted(): void
     {
         parent::booted();

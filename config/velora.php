@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use IvanBaric\Velora\Models\Team;
+use IvanBaric\Velora\Support\AllowAllPlanAccess;
 use IvanBaric\Velora\Support\TeamPermissions;
 
 return [
@@ -50,7 +52,7 @@ return [
 
     'models' => [
         'user' => env('VELORA_USER_MODEL'),
-        'team' => env('VELORA_TEAM_MODEL', IvanBaric\Velora\Models\Team::class),
+        'team' => env('VELORA_TEAM_MODEL', Team::class),
     ],
 
     'access' => [
@@ -58,7 +60,7 @@ return [
     ],
 
     'plan_access' => [
-        'resolver' => IvanBaric\Velora\Support\AllowAllPlanAccess::class,
+        'resolver' => AllowAllPlanAccess::class,
         'default_plan' => 'starter',
     ],
 

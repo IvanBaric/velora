@@ -79,7 +79,9 @@
 
             <div class="flex justify-start lg:justify-end">
                 <flux:dropdown position="bottom" align="end">
-                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije suradnika') }}" />
+                    <flux:tooltip :content="__('Otvori akcije za ovog suradnika')">
+                        <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije suradnika') }}" />
+                    </flux:tooltip>
 
                     <flux:menu>
                         <flux:menu.item icon="information-circle" wire:click="openMembershipDetails('{{ $membership->uuid }}')">

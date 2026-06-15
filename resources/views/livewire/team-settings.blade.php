@@ -12,10 +12,10 @@
     $roleCount = Role::query()->availableToTeam($teamId)->notHidden()->count();
 
     $cards = [
-        ['label' => __('Ukupno članova'), 'value' => number_format($memberCount, 0, ',', ' '), 'icon' => 'users', 'accent' => 'bg-accent'],
-        ['label' => __('Aktivni'), 'value' => number_format($activeMemberCount, 0, ',', ' '), 'icon' => 'check-circle', 'accent' => 'bg-accent'],
-        ['label' => __('Pozivnice'), 'value' => number_format($pendingInvitationCount, 0, ',', ' '), 'icon' => 'paper-airplane', 'accent' => 'bg-accent'],
-        ['label' => __('Uloge'), 'value' => number_format($roleCount, 0, ',', ' '), 'icon' => 'shield-check', 'accent' => 'bg-accent'],
+        ['label' => __('Ukupno članova'), 'value' => number_format($memberCount, 0, ',', ' '), 'icon' => 'users', 'accent' => 'bg-zinc-900 dark:bg-white'],
+        ['label' => __('Aktivni'), 'value' => number_format($activeMemberCount, 0, ',', ' '), 'icon' => 'check-circle', 'accent' => 'bg-emerald-500'],
+        ['label' => __('Pozivnice'), 'value' => number_format($pendingInvitationCount, 0, ',', ' '), 'icon' => 'paper-airplane', 'accent' => 'bg-sky-500'],
+        ['label' => __('Uloge'), 'value' => number_format($roleCount, 0, ',', ' '), 'icon' => 'shield-check', 'accent' => 'bg-amber-400'],
     ];
 @endphp
 
@@ -99,7 +99,7 @@
         @livewire('teams.team-member-manager')
     </x-admin-ui::panel>
 
-    @if (! auth()->user()?->membershipForCurrentTeam()?->is_owner)
+    @if (! (bool) auth()->user()?->is_superadmin && ! auth()->user()?->membershipForCurrentTeam()?->is_owner)
         <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-red-500/15 dark:bg-zinc-950 dark:ring-red-400/20">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>

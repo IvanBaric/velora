@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
 
 final class TeamSwitchController

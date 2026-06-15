@@ -41,7 +41,9 @@
 
             <div class="flex justify-start lg:justify-end">
                 <flux:dropdown position="bottom" align="end">
-                    <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije pozivnice') }}" />
+                    <flux:tooltip :content="__('Otvori akcije za ovu pozivnicu')">
+                        <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" aria-label="{{ __('Akcije pozivnice') }}" />
+                    </flux:tooltip>
 
                     <flux:menu>
                         @if ($invitation->status !== \IvanBaric\Velora\Enums\TeamInvitationStatus::Accepted)

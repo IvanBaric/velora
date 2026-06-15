@@ -4,16 +4,16 @@
             <flux:icon icon="paper-airplane" variant="micro" class="size-4" />
         </div>
         <div>
-            <flux:heading size="sm">{{ __('New invitation') }}</flux:heading>
-            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Send an invitation with a preselected role.') }}</flux:text>
+            <flux:heading size="sm">{{ __('Nova pozivnica') }}</flux:heading>
+            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pošaljite pozivnicu s unaprijed odabranom ulogom.') }}</flux:text>
         </div>
     </div>
 
     @if (! ($canInviteWithinCurrentPlan ?? true))
         <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_11rem]">
-            <flux:input label="{{ __('Email') }}" type="email" placeholder="name@company.com" icon="envelope" disabled />
+            <flux:input label="{{ __('Email') }}" type="email" placeholder="ime@domena.hr" icon="envelope" disabled />
 
-            <flux:select label="{{ __('Role') }}" variant="listbox" disabled>
+            <flux:select label="{{ __('Uloga') }}" variant="listbox" disabled>
                 @foreach ($roles as $role)
                     <flux:select.option value="{{ $role->slug }}">{{ __($role->name) }}</flux:select.option>
                 @endforeach
@@ -22,21 +22,21 @@
 
         <div class="mt-4">
             <x-plan-notice
-                :heading="__('Feature unavailable on this plan')"
+                :heading="__('Značajka nije dostupna na ovom planu')"
                 :message="$invitationBlockedMessage"
             />
         </div>
 
         <div class="mt-3 flex justify-end">
             <x-locked-plan-button :tooltip="$invitationBlockedMessage">
-                {{ __('Send invitation') }}
+                {{ __('Pošalji pozivnicu') }}
             </x-locked-plan-button>
         </div>
     @else
         <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_11rem]">
-            <flux:input wire:model="email" label="{{ __('Email') }}" type="email" placeholder="name@company.com" icon="envelope" clearable />
+            <flux:input wire:model="email" label="{{ __('Email') }}" type="email" placeholder="ime@domena.hr" icon="envelope" clearable />
 
-            <flux:select wire:model="roleSlug" label="{{ __('Role') }}" variant="listbox">
+            <flux:select wire:model="roleSlug" label="{{ __('Uloga') }}" variant="listbox">
                 @foreach ($roles as $role)
                     <flux:select.option value="{{ $role->slug }}">{{ __($role->name) }}</flux:select.option>
                 @endforeach
@@ -44,7 +44,9 @@
         </div>
 
         <div class="mt-3 flex justify-end">
-            <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Send invitation') }}</flux:button>
+            <flux:tooltip :content="__('Pošalji pozivnicu na unesenu email adresu')">
+                <flux:button type="submit" variant="primary" icon="paper-airplane">{{ __('Pošalji pozivnicu') }}</flux:button>
+            </flux:tooltip>
         </div>
     @endif
 </form>
