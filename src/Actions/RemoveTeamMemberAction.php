@@ -5,14 +5,22 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Actions;
 
 use Illuminate\Support\Facades\DB;
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Support\ActionResult;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class RemoveTeamMemberAction
 {
+    use AuthorizesActions;
+
     public function execute(TeamMembership $membership, ?int $actorUserId = null): ActionResult
     {
+        if ($result = $this->authorizeVeloraAction(TeamPermissions::MANAGE_MEMBERS, $membership)) {
+            return $result;
+        }
+
         if ($membership->is_owner) {
             return ActionResult::error(__('Vlasnika tima nije moguće ukloniti.'));
         }
@@ -37,5 +45,12 @@ final class RemoveTeamMemberAction
                 ? ActionResult::success(__('Član je uklonjen iz tima.'))
                 : $result;
         });
+    }
+
+    private function authorizeVeloraAction(string $ability, mixed $arguments = []): ?ActionResult
+    {
+        $result = $this->authorizeAction($ability, $arguments);
+
+        return $result ? ActionResult::fromCorexis($result) : null;
     }
 }

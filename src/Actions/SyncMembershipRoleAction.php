@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Actions;
 
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Contracts\PlanAccess;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
@@ -11,11 +12,18 @@ use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\PlanFeatures;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class SyncMembershipRoleAction
 {
+    use AuthorizesActions;
+
     public function execute(TeamMembership $membership, string $roleSlug): ActionResult
     {
+        if ($result = $this->authorizeVeloraAction(TeamPermissions::MANAGE_MEMBERS, $membership)) {
+            return $result;
+        }
+
         if ($membership->is_owner) {
             return ActionResult::error(__('Ulogu vlasnika nije moguće promijeniti.'));
         }
@@ -58,5 +66,12 @@ final class SyncMembershipRoleAction
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
             return false;
         }
+    }
+
+    private function authorizeVeloraAction(string $ability, mixed $arguments = []): ?ActionResult
+    {
+        $result = $this->authorizeAction($ability, $arguments);
+
+        return $result ? ActionResult::fromCorexis($result) : null;
     }
 }

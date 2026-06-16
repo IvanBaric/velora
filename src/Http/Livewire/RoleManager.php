@@ -19,6 +19,7 @@ use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\GrantablePermissions;
 use IvanBaric\Velora\Support\PlanFeatures;
+use IvanBaric\Velora\Support\TeamPermissions;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -51,6 +52,10 @@ class RoleManager extends Component
     #[On('open-role-manager')]
     public function open(): void
     {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_ROLES)) {
+            return;
+        }
+
         $this->resetForm();
         $this->isOpen = true;
     }
@@ -62,6 +67,10 @@ class RoleManager extends Component
 
     public function createRole(): void
     {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_ROLES)) {
+            return;
+        }
+
         if (! $this->rolesAndPermissionsAvailable()) {
             return;
         }
@@ -72,6 +81,10 @@ class RoleManager extends Component
 
     public function editRole(string $roleUuid): void
     {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_ROLES)) {
+            return;
+        }
+
         if (! $this->rolesAndPermissionsAvailable()) {
             return;
         }
@@ -89,6 +102,10 @@ class RoleManager extends Component
 
     public function save(SaveRoleAction $saveRole): void
     {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_ROLES)) {
+            return;
+        }
+
         if (! $this->rolesAndPermissionsAvailable()) {
             return;
         }
@@ -104,7 +121,7 @@ class RoleManager extends Component
         $this->name = $this->normalizeRoleName($this->name);
 
         if ($this->selectedPermissionItems === []) {
-            $this->toastFromResult(ActionResult::error('Odaberite barem jednu dozvolu za ovu ulogu.'));
+            $this->toastFromResult(ActionResult::error(__('Odaberite barem jednu dozvolu za ovu ulogu.')));
 
             return;
         }
@@ -182,6 +199,10 @@ class RoleManager extends Component
 
     public function confirmDelete(string $roleUuid): void
     {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_ROLES)) {
+            return;
+        }
+
         if (! $this->rolesAndPermissionsAvailable()) {
             return;
         }
@@ -197,6 +218,10 @@ class RoleManager extends Component
 
     public function deleteRole(DeleteRoleAction $deleteRole): void
     {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_ROLES)) {
+            return;
+        }
+
         if (! $this->rolesAndPermissionsAvailable()) {
             return;
         }
@@ -270,7 +295,6 @@ class RoleManager extends Component
                     })
                     ->values();
 
-                // Match whole group name/label to include all its items.
                 if (str_contains($groupName, $search) || str_contains($groupLabel, $search)) {
                     $items = $group->items->values();
                 }
@@ -400,12 +424,10 @@ class RoleManager extends Component
         $candidate = $base;
         $suffix = 2;
 
-        // Avoid collisions with both team-specific roles and global roles because
-        // lookups by slug are performed in a combined scope (global + team).
         while (Role::query()
             ->withoutGlobalScopes()
-            ->where(function ($q) use ($teamId): void {
-                $q->whereNull('team_id')->orWhere('team_id', $teamId);
+            ->where(function ($query) use ($teamId): void {
+                $query->whereNull('team_id')->orWhere('team_id', $teamId);
             })
             ->where('slug', $candidate)
             ->exists()

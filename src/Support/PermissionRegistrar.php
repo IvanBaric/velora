@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Support;
 
 use Illuminate\Database\Eloquent\Model;
+use IvanBaric\Velora\Exceptions\UnableToResolveCurrentTeam;
 
 class PermissionRegistrar
 {
@@ -18,7 +19,15 @@ class PermissionRegistrar
             return null;
         }
 
-        return $user->hasPermission($ability, $this->resolveTeam($arguments));
+        if ($ability === 'teams.create' && $arguments === []) {
+            return $this->userCanCreateTeam($user);
+        }
+
+        try {
+            return $user->hasPermission($ability, $this->resolveTeam($arguments));
+        } catch (UnableToResolveCurrentTeam) {
+            return null;
+        }
     }
 
     public function userHasRole(mixed $user, string $role, array $arguments = []): bool
@@ -27,7 +36,11 @@ class PermissionRegistrar
             return false;
         }
 
-        return $user->hasRole($role, $this->resolveTeam($arguments));
+        try {
+            return $user->hasRole($role, $this->resolveTeam($arguments));
+        } catch (UnableToResolveCurrentTeam) {
+            return false;
+        }
     }
 
     protected function resolveTeam(array $arguments = []): Model|int|null
@@ -42,8 +55,23 @@ class PermissionRegistrar
                     return (int) $argument->team_id;
                 }
             }
+
+            if (is_int($argument) || (is_string($argument) && ctype_digit($argument))) {
+                return (int) $argument;
+            }
         }
 
         return function_exists('team') ? team() : null;
+    }
+
+    protected function userCanCreateTeam(mixed $user): ?bool
+    {
+        $attribute = config('velora.access.superadmin_attribute');
+
+        if (is_string($attribute) && $attribute !== '' && (bool) data_get($user, $attribute)) {
+            return true;
+        }
+
+        return null;
     }
 }

@@ -9,12 +9,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class CreateTeamAction
 {
+    use AuthorizesActions;
+
     public function execute(Model $user, string $name): Model
     {
+        $this->authorizeActionOrFail(TeamPermissions::TEAMS_CREATE);
+
         $name = $this->normalizeName($name);
 
         if ($name === '') {

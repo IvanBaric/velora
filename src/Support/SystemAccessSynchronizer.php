@@ -58,7 +58,7 @@ class SystemAccessSynchronizer
         $configuredGroupSlugs = [];
         $configuredItemCodes = [];
 
-        foreach ((array) config('velora.permissions', []) as $groupConfig) {
+        foreach ($this->permissionGroups() as $groupConfig) {
             $groupSlug = (string) Arr::get($groupConfig, 'slug');
 
             if ($groupSlug === '') {
@@ -165,6 +165,34 @@ class SystemAccessSynchronizer
             ->whereNotIn('code', $configuredItemCodes)
             ->where('is_active', true)
             ->count();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function permissionGroups(): array
+    {
+        $groups = (array) config('velora.permissions', []);
+
+        foreach ((array) config('velora.permission_sources', []) as $source) {
+            if (! is_string($source) || $source === '') {
+                continue;
+            }
+
+            $sourceGroups = config($source.'.velora_permissions', config($source.'.permissions', []));
+
+            if (! is_array($sourceGroups) || ! array_is_list($sourceGroups)) {
+                continue;
+            }
+
+            foreach ($sourceGroups as $sourceGroup) {
+                if (is_array($sourceGroup) && isset($sourceGroup['items'])) {
+                    $groups[] = $sourceGroup;
+                }
+            }
+        }
+
+        return $groups;
     }
 
     /**

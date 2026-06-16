@@ -138,6 +138,22 @@ return [
         ],
     ],
 
+    'permission_sources' => [
+        'pages',
+        'blog',
+        'gallery',
+        'settings',
+        'taxonomy',
+        'status',
+        'seo',
+        'billing',
+        'plans',
+        'language',
+        'eav',
+        'meta',
+        'template-engine',
+    ],
+
     'system_roles' => [
         [
             'name' => 'Owner',

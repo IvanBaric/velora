@@ -16,6 +16,7 @@ use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Support\ActionResult;
+use IvanBaric\Velora\Support\TeamPermissions;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -28,7 +29,7 @@ class TeamInvitationManager extends Component
 
     public function resendInvitation(string $invitationUuid, ResendInvitationAction $resendInvitation): void
     {
-        if (! $this->authorizeOrToast('manageMembers', team())) {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_MEMBERS)) {
             return;
         }
 
@@ -43,7 +44,7 @@ class TeamInvitationManager extends Component
 
     public function revokeInvitation(string $invitationUuid, RevokeInvitationAction $revokeInvitation): void
     {
-        if (! $this->authorizeOrToast('manageMembers', team())) {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_MEMBERS)) {
             return;
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Actions;
 
 use Illuminate\Support\Facades\DB;
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Contracts\PlanAccess;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
@@ -12,22 +13,28 @@ use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\GrantablePermissions;
 use IvanBaric\Velora\Support\PlanFeatures;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class SaveRoleAction
 {
+    use AuthorizesActions;
+
     /**
      * @param  array<string, mixed>  $payload
      * @param  array<int, int>  $permissionItemIds
      */
     public function execute(?Role $role, array $payload, array $permissionItemIds): ActionResult
     {
-        if ($role) {
-            if ($role->isGlobal() || $role->is_locked) {
-                return ActionResult::error(__('Ovu ulogu nije moguće uređivati.'));
-            }
+        $teamId = (int) ($payload['team_id'] ?? 0);
+
+        if ($result = $this->authorizeVeloraAction(TeamPermissions::MANAGE_ROLES, $teamId)) {
+            return $result;
         }
 
-        $teamId = (int) ($payload['team_id'] ?? 0);
+        if ($role && ($role->isGlobal() || $role->is_locked)) {
+            return ActionResult::error(__('Ovu ulogu nije moguće uređivati.'));
+        }
+
         if (! $this->rolesAndPermissionsAvailable($teamId)) {
             return ActionResult::error(__('Roles and permissions are not included in your current plan. Existing roles stay active; upgrade your plan to manage custom access.'));
         }
@@ -98,5 +105,12 @@ final class SaveRoleAction
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
             return false;
         }
+    }
+
+    private function authorizeVeloraAction(string $ability, mixed $arguments = []): ?ActionResult
+    {
+        $result = $this->authorizeAction($ability, $arguments);
+
+        return $result ? ActionResult::fromCorexis($result) : null;
     }
 }

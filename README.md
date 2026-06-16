@@ -339,14 +339,22 @@ Reusable payload objects:
 
 ## ActionResult Pattern
 
-Velora uses `IvanBaric\Velora\Support\ActionResult` for action and domain outcomes that should not know about HTTP or UI:
+New Velora actions should return `IvanBaric\Corexis\Data\ActionResult` for action and domain outcomes that should not know about HTTP or UI.
+
+`IvanBaric\Velora\Support\ActionResult` remains available as a backward-compatible adapter for existing consumers:
 
 ```php
 ActionResult::success('Membership activated.');
 ActionResult::error('Membership is already revoked.');
 ```
 
+The compatibility class can convert to and from Corexis results with `toCorexis()` and `fromCorexis()`.
+
 This keeps redirects in the HTTP layer and toast handling in the Livewire/UI layer.
+
+## Domain Events
+
+Velora domain events implement `IvanBaric\Corexis\Contracts\Events\DomainEvent` and Laravel's `ShouldDispatchAfterCommit` contract so cross-package listeners such as audit or notification integrations can react after successful writes.
 
 ## Authorization
 

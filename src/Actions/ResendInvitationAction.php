@@ -8,15 +8,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Data\InvitationDispatchData;
 use IvanBaric\Velora\Mail\TeamInvitationMail;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class ResendInvitationAction
 {
+    use AuthorizesActions;
+
     public function execute(TeamInvitation $invitation, ?int $actorUserId = null, ?string $roleSlug = null): InvitationDispatchData
     {
+        $this->authorizeActionOrFail(TeamPermissions::MANAGE_MEMBERS, $invitation);
+
         if (! $invitation->canBeResent()) {
             throw ValidationException::withMessages([
                 'invitations' => __('Prihvaćene pozivnice nije moguće ponovno poslati.'),

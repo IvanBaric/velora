@@ -17,6 +17,7 @@ use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\PlanFeatures;
+use IvanBaric\Velora\Support\TeamPermissions;
 use IvanBaric\Velora\Support\TeamPlanUsage;
 use Livewire\Component;
 
@@ -35,7 +36,7 @@ class TeamInvitationForm extends Component
 
     public function validateInvitation(): bool
     {
-        if (! $this->authorizeOrToast('manageMembers', team())) {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_MEMBERS)) {
             return false;
         }
 
@@ -52,7 +53,7 @@ class TeamInvitationForm extends Component
 
     public function sendInvitation(SendInvitationAction $sendInvitation): void
     {
-        if (! $this->authorizeOrToast('manageMembers', team())) {
+        if (! $this->authorizeOrToast(TeamPermissions::MANAGE_MEMBERS)) {
             return;
         }
 

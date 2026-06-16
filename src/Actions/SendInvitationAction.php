@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Data\InvitationDispatchData;
 use IvanBaric\Velora\Enums\TeamInvitationStatus;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
@@ -15,11 +16,16 @@ use IvanBaric\Velora\Mail\TeamInvitationMail;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class SendInvitationAction
 {
+    use AuthorizesActions;
+
     public function execute(string $email, string $roleSlug, int $teamId, ?int $actorUserId = null): InvitationDispatchData
     {
+        $this->authorizeActionOrFail(TeamPermissions::MANAGE_MEMBERS, $teamId);
+
         $normalizedEmail = TeamInvitation::normalizeEmail($email);
         $this->ensureUserIsNotAlreadyMember($normalizedEmail, $teamId);
         $this->ensureRoleExists($roleSlug, $teamId);

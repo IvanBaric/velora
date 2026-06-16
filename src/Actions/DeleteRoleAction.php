@@ -5,17 +5,25 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Actions;
 
 use Illuminate\Support\Facades\DB;
+use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Contracts\PlanAccess;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\PlanFeatures;
+use IvanBaric\Velora\Support\TeamPermissions;
 
 final class DeleteRoleAction
 {
+    use AuthorizesActions;
+
     public function execute(Role $role, ?Role $replacementRole = null): ActionResult
     {
+        if ($result = $this->authorizeVeloraAction(TeamPermissions::MANAGE_ROLES, $role)) {
+            return $result;
+        }
+
         if ($role->isGlobal() || $role->is_locked) {
             return ActionResult::error(__('Ovu ulogu nije moguće izbrisati.'));
         }
@@ -64,5 +72,12 @@ final class DeleteRoleAction
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
             return false;
         }
+    }
+
+    private function authorizeVeloraAction(string $ability, mixed $arguments = []): ?ActionResult
+    {
+        $result = $this->authorizeAction($ability, $arguments);
+
+        return $result ? ActionResult::fromCorexis($result) : null;
     }
 }
