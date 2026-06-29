@@ -1,13 +1,13 @@
-<x-dynamic-component :component="config('velora.views.components.auth_layout', 'layouts.auth')">
+<x-dynamic-component :component="config('velora.views.components.auth_layout', 'layouts::auth')">
     <div class="flex flex-col gap-6">
         <x-auth-header
-            :title="$existingUser ? __('Pridruži se timu') : __('Dovrši registraciju')"
-            :description="$existingUser ? __('Potvrdite članstvo za nastavak.') : __('Kreirajte račun i pridružite se timu.')"
+            :title="$existingUser ? __('Pridruži se organizaciji') : __('Dovrši registraciju')"
+            :description="$existingUser ? __('Potvrdite članstvo za nastavak.') : __('Kreirajte račun i pridružite se organizaciji.')"
         />
 
         <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
             <div class="flex items-center justify-between gap-4">
-                <span>{{ __('Tim') }}</span>
+                <span>{{ __('Organizacija') }}</span>
                 <strong>{{ $invitation->team->name }}</strong>
             </div>
             <div class="mt-2 flex items-center justify-between gap-4">

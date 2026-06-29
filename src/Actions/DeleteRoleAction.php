@@ -29,11 +29,11 @@ final class DeleteRoleAction
         }
 
         if (! $this->rolesAndPermissionsAvailable($role)) {
-            return ActionResult::error(__('Roles and permissions are not included in your current plan. Existing roles stay active; upgrade your plan to manage custom access.'));
+            return ActionResult::error(__('Uloge i dozvole nisu uključene u trenutačni plan. Postojeće uloge ostaju aktivne; nadogradite plan za upravljanje prilagođenim pristupom.'));
         }
 
         if ($replacementRole && (int) $replacementRole->team_id !== (int) $role->team_id && ! $replacementRole->isGlobal()) {
-            return ActionResult::error(__('Zamjenska uloga mora pripadati istom timu.'));
+            return ActionResult::error(__('Zamjenska uloga mora pripadati istoj organizaciji.'));
         }
 
         $userCount = $role->userRoles()->count();
@@ -42,6 +42,19 @@ final class DeleteRoleAction
         }
 
         DB::transaction(function () use ($role, $replacementRole, $userCount): void {
+            /** @var Role $role */
+            $role = Role::query()
+                ->whereKey($role->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($replacementRole instanceof Role) {
+                $replacementRole = Role::query()
+                    ->whereKey($replacementRole->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+            }
+
             if ($userCount > 0) {
                 $role->userRoles()->update(['role_id' => $replacementRole?->getKey()]);
             }

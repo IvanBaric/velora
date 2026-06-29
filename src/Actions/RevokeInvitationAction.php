@@ -25,6 +25,12 @@ final class RevokeInvitationAction
         }
 
         DB::transaction(function () use ($invitation, $actorUserId, $meta): void {
+            /** @var TeamInvitation $invitation */
+            $invitation = TeamInvitation::query()
+                ->whereKey($invitation->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $invitation->markRevoked($actorUserId, $meta + ['reason' => 'manual_revoke']);
         });
 

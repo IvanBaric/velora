@@ -1,4 +1,4 @@
-<x-admin-ui::panel>
+<x-admin-ui::panel id="team-invitations-table" loading loading-target="resendInvitation" loading-text="{{ __('Šaljem pozivnicu...') }}">
     @if ($invitations->isNotEmpty())
         <div class="admin-list-header lg:grid-cols-[minmax(0,1fr)_9rem_9rem_5rem]">
             <span>{{ __('Email') }}</span>
@@ -9,7 +9,12 @@
     @endif
 
     @forelse ($invitations as $invitation)
-        <article wire:key="invitation-{{ $invitation->uuid }}" class="admin-list-row p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_9rem_9rem_5rem]">
+        <article
+            wire:key="invitation-{{ $invitation->uuid }}"
+            wire:loading.class="opacity-70"
+            wire:target="resendInvitation('{{ $invitation->uuid }}')"
+            class="admin-list-row p-4 transition sm:p-6 lg:grid-cols-[minmax(0,1fr)_9rem_9rem_5rem]"
+        >
             <div class="min-w-0">
                 <h3 class="truncate text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">
                     {{ $invitation->email }}
@@ -17,6 +22,14 @@
                 <p class="mt-0.5 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
                     {{ $invitation->last_sent_at ? __('Poslano :date', ['date' => $invitation->last_sent_at->format('d.m.Y. H:i')]) : __('Još nije poslano') }}
                 </p>
+                <span
+                    wire:loading.inline-flex
+                    wire:target="resendInvitation('{{ $invitation->uuid }}')"
+                    class="mt-2 hidden items-center gap-2 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25"
+                >
+                    <flux:icon.loading class="size-3.5" />
+                    {{ __('Šaljem pozivnicu...') }}
+                </span>
             </div>
 
             <div class="text-sm font-medium text-zinc-700 dark:text-zinc-200">
@@ -47,8 +60,21 @@
 
                     <flux:menu>
                         @if ($invitation->status !== \IvanBaric\Velora\Enums\TeamInvitationStatus::Accepted)
-                            <flux:menu.item icon="paper-airplane" wire:click="resendInvitation('{{ $invitation->uuid }}')">
-                                {{ __('Pošalji ponovno') }}
+                            <flux:menu.item
+                                as="button"
+                                type="button"
+                                icon="paper-airplane"
+                                wire:click="resendInvitation('{{ $invitation->uuid }}')"
+                                wire:loading.attr="disabled"
+                                wire:target="resendInvitation('{{ $invitation->uuid }}')"
+                                class="cursor-pointer disabled:cursor-wait"
+                            >
+                                <span wire:loading.remove wire:target="resendInvitation('{{ $invitation->uuid }}')">
+                                    {{ __('Pošalji ponovno') }}
+                                </span>
+                                <span wire:loading wire:target="resendInvitation('{{ $invitation->uuid }}')">
+                                    {{ __('Šaljem...') }}
+                                </span>
                             </flux:menu.item>
                         @endif
 
@@ -75,8 +101,8 @@
     @endforelse
 
     @if ($invitations->hasPages())
-        <div class="border-t border-zinc-100/70 px-4 py-3 dark:border-zinc-800/70">
-            {{ $invitations->links() }}
+        <div class="border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <flux:pagination :paginator="$invitations" scroll-to="#team-invitations-table" />
         </div>
     @endif
 </x-admin-ui::panel>

@@ -21,6 +21,6 @@ final class UpdateTeamNameAction
 
         $team->update(['name' => $name]);
 
-        return ActionResult::success(__('Naziv tima je ažuriran.'));
+        return ActionResult::success(__('Naziv organizacije je ažuriran.'));
     }
 }

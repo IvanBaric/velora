@@ -24,15 +24,17 @@ class TeamMemberJoinedMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $subject = (string) config('velora.mail.member_joined_subject', 'Novi suradnik organizacije: :team');
+
         return new Envelope(
-            subject: __('Novi član tima: :team', ['team' => $this->invitation->team->name]),
+            subject: __($subject, ['team' => $this->invitation->team->name]),
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'velora::mail.member-joined',
+            view: (string) config('velora.mail.member_joined_view', 'velora::mail.member-joined'),
         );
     }
 }

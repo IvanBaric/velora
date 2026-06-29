@@ -33,6 +33,12 @@ final class ResendInvitationAction
         $this->ensureRoleCanBeAssigned((string) $resolvedRoleSlug, (int) $invitation->team_id);
 
         [$invitation, $plainToken] = DB::transaction(function () use ($invitation, $actorUserId, $resolvedRoleSlug): array {
+            /** @var TeamInvitation $invitation */
+            $invitation = TeamInvitation::query()
+                ->whereKey($invitation->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $plainToken = $invitation->prepareForResend($actorUserId, $resolvedRoleSlug);
 
             return [$invitation->fresh() ?? $invitation, $plainToken];

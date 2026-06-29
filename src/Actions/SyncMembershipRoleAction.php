@@ -6,6 +6,7 @@ namespace IvanBaric\Velora\Actions;
 
 use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Contracts\PlanAccess;
+use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Models\Role;
@@ -24,12 +25,20 @@ final class SyncMembershipRoleAction
             return $result;
         }
 
+        if (! $this->currentActorOwnsTeam((int) $membership->team_id)) {
+            return ActionResult::error(__('Samo vlasnik organizacije može mijenjati uloge suradnika.'));
+        }
+
+        if ((int) $membership->user_id === (int) auth()->id()) {
+            return ActionResult::error(__('Svoju ulogu nije moguće promijeniti na ovaj način.'));
+        }
+
         if ($membership->is_owner) {
             return ActionResult::error(__('Ulogu vlasnika nije moguće promijeniti.'));
         }
 
         if (! $this->rolesAndPermissionsAvailable($membership)) {
-            return ActionResult::error(__('Roles and permissions are not included in your current plan. Existing roles stay active; upgrade your plan to change member roles.'));
+            return ActionResult::error(__('Uloge i dozvole nisu uključene u trenutačni plan. Postojeće uloge ostaju aktivne; nadogradite plan za promjenu uloga.'));
         }
 
         $roleExists = Role::query()
@@ -39,7 +48,7 @@ final class SyncMembershipRoleAction
             ->exists();
 
         if (! $roleExists) {
-            return ActionResult::error(__('Uloga nije pronađena za ovaj tim.'));
+            return ActionResult::error(__('Uloga nije pronađena za ovu organizaciju.'));
         }
 
         $result = $membership->syncRoles([$roleSlug]);
@@ -48,7 +57,7 @@ final class SyncMembershipRoleAction
             return ActionResult::fromOperationResult($result);
         }
 
-        return ActionResult::success(__('Uloga člana je ažurirana.'));
+        return ActionResult::success(__('Uloga suradnika je ažurirana.'));
     }
 
     private function rolesAndPermissionsAvailable(TeamMembership $membership): bool
@@ -73,5 +82,22 @@ final class SyncMembershipRoleAction
         $result = $this->authorizeAction($ability, $arguments);
 
         return $result ? ActionResult::fromCorexis($result) : null;
+    }
+
+    private function currentActorOwnsTeam(int $teamId): bool
+    {
+        $userId = auth()->id();
+
+        if (! $userId) {
+            return false;
+        }
+
+        return TeamMembership::query()
+            ->withoutGlobalScopes()
+            ->where('team_id', $teamId)
+            ->where('user_id', (int) $userId)
+            ->where('is_owner', true)
+            ->where('status', TeamMembershipStatus::Active->value)
+            ->exists();
     }
 }

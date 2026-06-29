@@ -1,1 +1,15 @@
-{}
+{
+    "Teams": "Organizacija",
+    "Team, member, and role management.": "Upravljanje organizacijom, suradnicima i ulogama.",
+    "View teams": "Pregled organizacije",
+    "Update teams": "Uređivanje organizacije",
+    "Delete teams": "Brisanje organizacije",
+    "Manage members": "Upravljanje suradnicima",
+    "Manage roles": "Upravljanje ulogama",
+    "Owner": "Vlasnik",
+    "System role with full team access.": "Sistemska uloga s punim pristupom organizaciji.",
+    "Administrator": "Administrator",
+    "Team administrator role.": "Administratorska uloga organizacije.",
+    "Member": "Suradnik",
+    "Default team member role.": "Zadana uloga suradnika organizacije."
+}

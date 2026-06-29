@@ -76,7 +76,7 @@ final class TeamInvitationService
         $validated = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
-        ])->validate();
+        ], $this->invitedUserValidationMessages(), $this->invitedUserValidationAttributes())->validate();
 
         $user = $this->createInvitedUser->execute([
             'name' => $validated['name'],
@@ -98,7 +98,7 @@ final class TeamInvitationService
 
         Validator::make($request->all(), [
             'password' => ['required', 'string'],
-        ])->validate();
+        ], $this->existingUserValidationMessages(), $this->invitedUserValidationAttributes())->validate();
 
         if (! Hash::check((string) $request->string('password'), (string) $existingUser->getAttribute('password'))) {
             throw ValidationException::withMessages([
@@ -132,6 +132,43 @@ final class TeamInvitationService
         $user = Auth::user();
 
         return $user instanceof Model ? $user : null;
+    }
+
+    /** @return array<string, string> */
+    protected function invitedUserValidationMessages(): array
+    {
+        return [
+            'name.required' => __('Unesite ime i prezime.'),
+            'name.string' => __('Ime i prezime mora biti tekst.'),
+            'name.max' => __('Ime i prezime smije imati najviše :max znakova.'),
+            'password.required' => __('Unesite lozinku.'),
+            'password.confirmed' => __('Potvrda lozinke se ne podudara.'),
+            'password.min' => __('Lozinka mora imati najmanje :min znakova.'),
+            'password.letters' => __('Lozinka mora sadržavati barem jedno slovo.'),
+            'password.mixed' => __('Lozinka mora sadržavati velika i mala slova.'),
+            'password.numbers' => __('Lozinka mora sadržavati barem jedan broj.'),
+            'password.symbols' => __('Lozinka mora sadržavati barem jedan simbol.'),
+            'password.uncompromised' => __('Ova lozinka se pojavila u poznatom curenju podataka. Odaberite drugu lozinku.'),
+        ];
+    }
+
+    /** @return array<string, string> */
+    protected function existingUserValidationMessages(): array
+    {
+        return [
+            'password.required' => __('Unesite lozinku.'),
+            'password.string' => __('Lozinka mora biti tekst.'),
+        ];
+    }
+
+    /** @return array<string, string> */
+    protected function invitedUserValidationAttributes(): array
+    {
+        return [
+            'name' => __('ime i prezime'),
+            'password' => __('lozinka'),
+            'password_confirmation' => __('potvrda lozinke'),
+        ];
     }
 
     protected function acceptRedirectUrl(): string

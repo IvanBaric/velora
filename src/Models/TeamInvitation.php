@@ -24,6 +24,7 @@ class TeamInvitation extends Model
         'email',
         'role_id',
         'role_slug',
+        'is_owner',
         'status',
         'invited_by_user_id',
         'token_hash',
@@ -38,6 +39,7 @@ class TeamInvitation extends Model
     {
         return [
             'status' => TeamInvitationStatus::class,
+            'is_owner' => 'boolean',
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
             'revoked_at' => 'datetime',
@@ -226,5 +228,19 @@ class TeamInvitation extends Model
     public function getRoleAbbrvAttribute(): ?string
     {
         return $this->role_slug;
+    }
+
+    public static function storesOwnerFlag(): bool
+    {
+        $model = new static();
+        $schema = $model->getConnection()->getSchemaBuilder();
+        $table = $model->getTable();
+
+        return $schema->hasTable($table) && $schema->hasColumn($table, 'is_owner');
+    }
+
+    public function grantsOwnerAccess(): bool
+    {
+        return self::storesOwnerFlag() && (bool) $this->getAttribute('is_owner');
     }
 }

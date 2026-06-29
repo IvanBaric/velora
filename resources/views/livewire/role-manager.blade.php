@@ -5,7 +5,7 @@
                 <div class="min-w-0">
                     <flux:heading size="lg">{{ __('Uloge') }}</flux:heading>
                     <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ __('Upravljajte pristupom članova tima kroz jasno definirane uloge i dozvole.') }}
+                        {{ __('Upravljajte pristupom suradnika organizacije kroz jasno definirane uloge i dozvole.') }}
                     </flux:text>
                 </div>
 
@@ -19,7 +19,7 @@
             </div>
 
             @unless ($rolesAndPermissionsAvailable)
-                <x-plan-notice :message="__('Roles and permissions are not included in your current plan. Existing access stays active, but custom role management is locked until you upgrade.')" />
+                <x-plan-notice :message="__('Uloge i dozvole nisu uključene u trenutačni plan. Postojeći pristup ostaje aktivan, ali upravljanje ulogama zaključano je do nadogradnje plana.')" />
             @endunless
 
             <div class="grid gap-3 sm:grid-cols-2">
@@ -29,7 +29,7 @@
                 </div>
 
                 <div class="rounded-2xl bg-zinc-50/70 p-4 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10">
-                    <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Timske uloge') }}</p>
+                    <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Organizacijske uloge') }}</p>
                     <p class="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-zinc-950 dark:text-white">{{ $roles->filter(fn ($role) => ! $role->isGlobal())->count() }}</p>
                 </div>
             </div>
@@ -58,7 +58,7 @@
                                 @else
                                     <span class="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
                                         <flux:icon name="users" class="size-3.5" />
-                                        {{ __('Tim') }}
+                                        {{ __('Organizacija') }}
                                     </span>
                                 @endif
                             </div>
@@ -161,7 +161,6 @@
                                 @endif
                             </div>
                         </section>
-
                     </aside>
 
                     <div class="space-y-4">
@@ -209,7 +208,6 @@
                     </div>
                 </div>
             </div>
-
         </form>
     </flux:modal>
 
@@ -221,7 +219,7 @@
             <div>
                 <flux:heading size="lg">{{ __('Obriši ulogu') }}</flux:heading>
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    {{ __('Ova radnja uklanja ulogu iz tima. Suradnici koji je koriste moraju dobiti zamjensku ulogu.') }}
+                    {{ __('Ova radnja uklanja ulogu iz organizacije. Suradnici koji je koriste moraju dobiti zamjensku ulogu.') }}
                 </flux:text>
             </div>
         </div>

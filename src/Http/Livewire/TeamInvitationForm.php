@@ -141,7 +141,7 @@ class TeamInvitationForm extends Component
             return true;
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException $exception) {
             $this->toastFromResult(ActionResult::error(
-                $this->invitationBlockedMessage() ?? trim($exception->getMessage().' '.__('Existing team members keep access, but your current plan cannot add more. Upgrade your plan to continue.'))
+                $this->invitationBlockedMessage() ?? trim($exception->getMessage().' '.__('Postojeći suradnici zadržavaju pristup, ali trenutačni plan ne dopušta dodavanje novih suradnika. Nadogradite plan za nastavak.'))
             ));
 
             return false;
@@ -162,7 +162,7 @@ class TeamInvitationForm extends Component
             $planCode = (string) (team()->plan_code ?: 'starter');
             $planName = __("plans::plans.{$planCode}.name");
 
-            return __('Invitations are not available on the :plan plan because the team member limit has been reached. Upgrade your plan to add collaborators.', [
+            return __('Pozivnice nisu dostupne na planu :plan jer je dosegnut limit suradnika. Nadogradite plan kako biste dodali nove suradnike.', [
                 'plan' => $planName,
             ]);
         }

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class TeamDropdown extends Component
 {
+    #[Locked]
     public string $variant = 'dropdown';
 
     public function mount(string $variant = 'dropdown'): void

@@ -113,7 +113,7 @@ class TeamInvitationManager extends Component
 
         if ($isMember) {
             throw ValidationException::withMessages([
-                'invitations' => __('Suradnik je već član tima.'),
+                'invitations' => __('Suradnik je već član organizacije.'),
             ]);
         }
     }

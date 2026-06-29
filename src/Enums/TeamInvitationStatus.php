@@ -27,7 +27,7 @@ enum TeamInvitationStatus: string
             self::Pending => 'clock',
             self::Accepted => 'check-circle',
             self::Revoked => 'x-circle',
-            self::Expired => 'alert-triangle',
+            self::Expired => 'exclamation-triangle',
         };
     }
 

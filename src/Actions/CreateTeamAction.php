@@ -25,13 +25,13 @@ final class CreateTeamAction
 
         if ($name === '') {
             throw ValidationException::withMessages([
-                'name' => __('Naziv tima je obavezan.'),
+                'name' => __('Naziv organizacije je obavezan.'),
             ]);
         }
 
         if (mb_strlen($name) > 255) {
             throw ValidationException::withMessages([
-                'name' => __('Naziv tima ne smije biti duži od 255 znakova.'),
+                'name' => __('Naziv organizacije ne smije biti duži od 255 znakova.'),
             ]);
         }
 

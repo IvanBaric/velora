@@ -24,15 +24,17 @@ class TeamInvitationMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $subject = (string) config('velora.mail.invitation_subject', 'Poziv za suradnju: :team');
+
         return new Envelope(
-            subject: __('Poziv u tim: :team', ['team' => $this->invitation->team->name]),
+            subject: __($subject, ['team' => $this->invitation->team->name]),
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'velora::mail.invitation',
+            view: (string) config('velora.mail.invitation_view', 'velora::mail.invitation'),
         );
     }
 }

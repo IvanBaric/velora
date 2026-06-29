@@ -36,7 +36,7 @@ final class SaveRoleAction
         }
 
         if (! $this->rolesAndPermissionsAvailable($teamId)) {
-            return ActionResult::error(__('Roles and permissions are not included in your current plan. Existing roles stay active; upgrade your plan to manage custom access.'));
+            return ActionResult::error(__('Uloge i dozvole nisu uključene u trenutačni plan. Postojeće uloge ostaju aktivne; nadogradite plan za upravljanje prilagođenim pristupom.'));
         }
 
         $name = trim((string) ($payload['name'] ?? ''));
@@ -44,7 +44,7 @@ final class SaveRoleAction
         $payload['label'] = trim((string) ($payload['label'] ?? $name));
 
         if ($role && (int) $role->team_id !== $teamId) {
-            return ActionResult::error(__('Ovu ulogu nije moguće uređivati u trenutnom timu.'));
+            return ActionResult::error(__('Ovu ulogu nije moguće uređivati u trenutnoj organizaciji.'));
         }
 
         if ($teamId > 0 && $name !== '') {
@@ -72,6 +72,11 @@ final class SaveRoleAction
 
         DB::transaction(function () use (&$role, $payload, $permissionItemIds): void {
             if ($role) {
+                $role = Role::query()
+                    ->whereKey($role->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
                 $role->update($payload);
             } else {
                 /** @var Role $createdRole */

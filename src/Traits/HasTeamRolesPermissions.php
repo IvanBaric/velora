@@ -50,7 +50,7 @@ trait HasTeamRolesPermissions
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
-            return OperationResult::failure(__('Uloga nije pronađena za ovaj tim.'), code: 'role_not_found');
+            return OperationResult::failure(__('Uloga nije pronađena za ovu organizaciju.'), code: 'role_not_found');
         }
 
         if (! $this->roleAssignable($resolvedRole)) {
@@ -84,7 +84,7 @@ trait HasTeamRolesPermissions
         $teamId = $this->resolveTeamId($team);
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
-            return OperationResult::failure(__('Uloga nije pronađena za ovaj tim.'), code: 'role_not_found');
+            return OperationResult::failure(__('Uloga nije pronađena za ovu organizaciju.'), code: 'role_not_found');
         }
 
         $deleted = UserRole::query()
@@ -105,7 +105,7 @@ trait HasTeamRolesPermissions
         $teamId = $this->resolveTeamId($team);
         $resolvedRoles = $this->resolveRolesCollection($roles, $teamId);
         if ($resolvedRoles->count() > 1) {
-            return OperationResult::failure(__('Po timu je moguće dodijeliti samo jednu ulogu.'), code: 'multiple_roles_not_supported');
+            return OperationResult::failure(__('Po organizaciji je moguće dodijeliti samo jednu ulogu.'), code: 'multiple_roles_not_supported');
         }
 
         $userId = $this->resolveRoleOwnerId();

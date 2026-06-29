@@ -152,6 +152,14 @@ Invitation routes are always registered:
 - `GET /app/team/invitation/{token}` -> `teams.invitation.accept`
 - `POST /app/team/invitation/{token}` -> `teams.invitation.accept.store`
 
+## Project Integration
+
+For the standard admin integration used in every project, see:
+
+- [`docs/project-integration.md`](docs/project-integration.md)
+
+That document covers the required `Suradnici` sidebar link, Velora `teams.*` routes, route prefix/segment config, user model integration, permission sync and team-context middleware.
+
 ## Configuration
 
 Key options in `config/velora.php`:

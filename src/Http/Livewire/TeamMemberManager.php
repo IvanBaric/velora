@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Gate;
 use IvanBaric\Velora\Actions\RemoveTeamMemberAction;
 use IvanBaric\Velora\Actions\SyncMembershipRoleAction;
 use IvanBaric\Velora\Contracts\PlanAccess;
+use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
@@ -19,6 +20,7 @@ use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Models\UserRole;
 use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\PlanFeatures;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -36,16 +38,21 @@ class TeamMemberManager extends Component
     public bool $showMembershipDetailsModal = false;
 
     /** @var array<string, mixed>|null */
+    #[Locked]
     public ?array $membershipDetails = null;
 
+    #[Locked]
     public ?string $pendingRoleMembershipUuid = null;
 
     public ?string $pendingRole = null;
 
+    #[Locked]
     public ?string $pendingRoleUserName = null;
 
+    #[Locked]
     public ?string $pendingRemoveMembershipUuid = null;
 
+    #[Locked]
     public ?string $pendingRemoveUserName = null;
 
     protected $listeners = ['search-updated' => 'handleSearchUpdated'];
@@ -74,7 +81,7 @@ class TeamMemberManager extends Component
         $membership = $this->resolveMembershipByUuid($membershipUuid, ['user']);
         $this->loadMembershipRoles($membership);
 
-        if ($membership->is_owner) {
+        if (! $this->canCurrentUserChangeRole($membership)) {
             return;
         }
 
@@ -129,7 +136,7 @@ class TeamMemberManager extends Component
         }
 
         $membership = $this->resolveMembershipByUuid((string) $this->pendingRoleMembershipUuid);
-        if ($membership->is_owner) {
+        if (! $this->canCurrentUserChangeRole($membership)) {
             $this->cancelRoleChange();
 
             return;
@@ -154,7 +161,7 @@ class TeamMemberManager extends Component
         Gate::authorize('manageMembers', team());
 
         $membership = $this->resolveMembershipByUuid($membershipUuid, ['user']);
-        if ($membership->is_owner) {
+        if (! $this->canCurrentUserRemoveMember($membership)) {
             return;
         }
 
@@ -169,7 +176,7 @@ class TeamMemberManager extends Component
         abort_unless($this->pendingRemoveMembershipUuid, 422);
 
         $membership = $this->resolveMembershipByUuid((string) $this->pendingRemoveMembershipUuid, ['user']);
-        if ($membership->is_owner) {
+        if (! $this->canCurrentUserRemoveMember($membership)) {
             $this->cancelRemoveMember();
 
             return;
@@ -210,6 +217,8 @@ class TeamMemberManager extends Component
                 ->pluck('name', 'slug')
                 ->toArray(),
             'rolesAndPermissionsAvailable' => $this->rolesAndPermissionsAvailable(toast: false),
+            'currentUserOwnsTeam' => $this->currentUserOwnsTeam(),
+            'currentUserId' => auth()->id(),
         ]);
     }
 
@@ -222,7 +231,7 @@ class TeamMemberManager extends Component
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException $exception) {
             if ($toast) {
                 $this->toastFromResult(ActionResult::error(
-                    trim($exception->getMessage().' '.__('Existing roles stay active, but your current plan cannot change member roles. Upgrade your plan to continue.'))
+                    trim($exception->getMessage().' '.__('Postojeće uloge ostaju aktivne, ali trenutačni plan ne dopušta promjenu uloga suradnika. Nadogradite plan za nastavak.'))
                 ));
             }
 
@@ -281,5 +290,36 @@ class TeamMemberManager extends Component
                 $rolesByUserId->get($membership->user_id, new EloquentCollection)
             );
         });
+    }
+
+    protected function canCurrentUserChangeRole(TeamMembership $membership): bool
+    {
+        return $this->currentUserOwnsTeam()
+            && ! $membership->is_owner
+            && (int) $membership->user_id !== (int) auth()->id();
+    }
+
+    protected function canCurrentUserRemoveMember(TeamMembership $membership): bool
+    {
+        return $this->currentUserOwnsTeam()
+            && ! $membership->is_owner
+            && (int) $membership->user_id !== (int) auth()->id();
+    }
+
+    protected function currentUserOwnsTeam(): bool
+    {
+        $userId = auth()->id();
+
+        if (! $userId) {
+            return false;
+        }
+
+        return TeamMembership::query()
+            ->withoutGlobalScopes()
+            ->where('team_id', team()->getKey())
+            ->where('user_id', (int) $userId)
+            ->where('is_owner', true)
+            ->where('status', TeamMembershipStatus::Active->value)
+            ->exists();
     }
 }

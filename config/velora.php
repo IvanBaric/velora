@@ -43,10 +43,10 @@ return [
             | These let you swap Blade components used by Velora views
             | without overriding the views themselves.
             |
-            | Example: 'auth_layout' => 'layouts.auth-split'
-            | Then Velora will render: <x-layouts.auth-split>...</x-layouts.auth-split>
+            | Example: 'auth_layout' => 'layouts::auth.split'
+            | Then Velora will render the configured auth layout component.
             */
-            'auth_layout' => 'layouts.auth',
+            'auth_layout' => 'layouts::auth',
         ],
     ],
 
@@ -113,6 +113,13 @@ return [
         'accept_redirect_route' => env('VELORA_INVITATION_ACCEPT_REDIRECT_ROUTE', 'teams.settings'),
     ],
 
+    'mail' => [
+        'invitation_view' => env('VELORA_INVITATION_MAIL_VIEW', 'velora::mail.invitation'),
+        'member_joined_view' => env('VELORA_MEMBER_JOINED_MAIL_VIEW', 'velora::mail.member-joined'),
+        'invitation_subject' => env('VELORA_INVITATION_MAIL_SUBJECT', 'Poziv za suradnju: :team'),
+        'member_joined_subject' => env('VELORA_MEMBER_JOINED_MAIL_SUBJECT', 'Novi suradnik organizacije: :team'),
+    ],
+
     'routes' => [
         'prefix' => env('VELORA_ROUTES_PREFIX', 'app'),
         'team_segment' => env('VELORA_ROUTES_TEAM_SEGMENT', 'teams'),
@@ -122,18 +129,18 @@ return [
 
     'permissions' => [
         [
-            'name' => 'Teams',
+            'name' => 'Organizacija',
             'slug' => 'teams',
-            'label' => 'Teams',
-            'description' => 'Team, member, and role management.',
+            'label' => 'Organizacija',
+            'description' => 'Upravljanje organizacijom, suradnicima i ulogama.',
             'icon' => 'users',
             'sort_order' => 10,
             'items' => [
-                ['name' => 'View', 'slug' => 'view', 'code' => TeamPermissions::TEAMS_VIEW, 'label' => 'View teams', 'sort_order' => 10],
-                ['name' => 'Update', 'slug' => 'update', 'code' => TeamPermissions::TEAMS_UPDATE, 'label' => 'Update teams', 'sort_order' => 30],
-                ['name' => 'Delete', 'slug' => 'delete', 'code' => TeamPermissions::TEAMS_DELETE, 'label' => 'Delete teams', 'sort_order' => 40],
-                ['name' => 'Manage members', 'slug' => 'manage_members', 'code' => TeamPermissions::MANAGE_MEMBERS, 'label' => 'Manage members', 'sort_order' => 50],
-                ['name' => 'Manage roles', 'slug' => 'manage_roles', 'code' => TeamPermissions::MANAGE_ROLES, 'label' => 'Manage roles', 'sort_order' => 60],
+                ['name' => 'Pregled', 'slug' => 'view', 'code' => TeamPermissions::TEAMS_VIEW, 'label' => 'Pregled organizacije', 'sort_order' => 10],
+                ['name' => 'Uređivanje', 'slug' => 'update', 'code' => TeamPermissions::TEAMS_UPDATE, 'label' => 'Uređivanje organizacije', 'sort_order' => 30],
+                ['name' => 'Brisanje', 'slug' => 'delete', 'code' => TeamPermissions::TEAMS_DELETE, 'label' => 'Brisanje organizacije', 'sort_order' => 40],
+                ['name' => 'Upravljanje suradnicima', 'slug' => 'manage_members', 'code' => TeamPermissions::MANAGE_MEMBERS, 'label' => 'Upravljanje suradnicima', 'sort_order' => 50],
+                ['name' => 'Upravljanje ulogama', 'slug' => 'manage_roles', 'code' => TeamPermissions::MANAGE_ROLES, 'label' => 'Upravljanje ulogama', 'sort_order' => 60],
             ],
         ],
     ],
@@ -159,7 +166,7 @@ return [
             'name' => 'Owner',
             'slug' => 'owner',
             'label' => 'Owner',
-            'description' => 'System role with full team access.',
+            'description' => 'Sistemska uloga s punim pristupom organizaciji.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,
@@ -172,7 +179,7 @@ return [
             'name' => 'Administrator',
             'slug' => 'admin',
             'label' => 'Administrator',
-            'description' => 'Team administrator role.',
+            'description' => 'Administratorska uloga organizacije.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,
@@ -182,10 +189,10 @@ return [
             'all_permissions' => true,
         ],
         [
-            'name' => 'Member',
+            'name' => 'Suradnik',
             'slug' => 'member',
-            'label' => 'Member',
-            'description' => 'Default team member role.',
+            'label' => 'Suradnik',
+            'description' => 'Zadana uloga suradnika organizacije.',
             'redirect_to' => null,
             'is_system' => true,
             'is_locked' => true,

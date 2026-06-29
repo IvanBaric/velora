@@ -20,6 +20,7 @@ use IvanBaric\Velora\Support\ActionResult;
 use IvanBaric\Velora\Support\GrantablePermissions;
 use IvanBaric\Velora\Support\PlanFeatures;
 use IvanBaric\Velora\Support\TeamPermissions;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -33,18 +34,22 @@ class RoleManager extends Component
 
     public bool $isDeleteConfirmOpen = false;
 
+    #[Locked]
     public bool $isReadOnly = false;
 
+    #[Locked]
     public ?string $roleUuid = null;
 
     public string $name = '';
 
+    #[Locked]
     public string $slug = '';
 
     public array $selectedPermissionItems = [];
 
     public ?string $replacementRoleUuid = null;
 
+    #[Locked]
     public int $pendingDeleteUserCount = 0;
 
     public string $permissionSearch = '';
@@ -341,7 +346,7 @@ class RoleManager extends Component
 
             return null;
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
-            return __('New custom roles are available on the Pro plan. Existing roles stay active.');
+            return __('Nove prilagođene uloge dostupne su na Pro planu. Postojeće uloge ostaju aktivne.');
         }
     }
 

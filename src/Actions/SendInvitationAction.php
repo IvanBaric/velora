@@ -22,7 +22,7 @@ final class SendInvitationAction
 {
     use AuthorizesActions;
 
-    public function execute(string $email, string $roleSlug, int $teamId, ?int $actorUserId = null): InvitationDispatchData
+    public function execute(string $email, string $roleSlug, int $teamId, ?int $actorUserId = null, bool $isOwner = false): InvitationDispatchData
     {
         $this->authorizeActionOrFail(TeamPermissions::MANAGE_MEMBERS, $teamId);
 
@@ -30,10 +30,11 @@ final class SendInvitationAction
         $this->ensureUserIsNotAlreadyMember($normalizedEmail, $teamId);
         $this->ensureRoleExists($roleSlug, $teamId);
 
-        [$invitation, $plainToken] = DB::transaction(function () use ($normalizedEmail, $roleSlug, $teamId, $actorUserId): array {
+        [$invitation, $plainToken] = DB::transaction(function () use ($normalizedEmail, $roleSlug, $teamId, $actorUserId, $isOwner): array {
             $existing = TeamInvitation::query()
                 ->where('team_id', $teamId)
                 ->where('email', $normalizedEmail)
+                ->lockForUpdate()
                 ->first();
 
             if ($existing?->status === TeamInvitationStatus::Pending && ! $existing->isExpired()) {
@@ -49,16 +50,26 @@ final class SendInvitationAction
             if ($existing) {
                 $plainToken = $existing->prepareForResend($actorUserId, $roleSlug);
 
+                if (TeamInvitation::storesOwnerFlag()) {
+                    $existing->forceFill(['is_owner' => $isOwner])->save();
+                }
+
                 return [$existing->fresh() ?? $existing, $plainToken];
             }
 
-            /** @var TeamInvitation $invitation */
-            $invitation = TeamInvitation::query()->create([
+            $attributes = [
                 'team_id' => $teamId,
                 'email' => $normalizedEmail,
                 'role_slug' => $roleSlug,
                 'invited_by_user_id' => $actorUserId,
-            ]);
+            ];
+
+            if (TeamInvitation::storesOwnerFlag()) {
+                $attributes['is_owner'] = $isOwner;
+            }
+
+            /** @var TeamInvitation $invitation */
+            $invitation = TeamInvitation::query()->create($attributes);
 
             $plainToken = $invitation->issueToken();
 
@@ -103,7 +114,7 @@ final class SendInvitationAction
 
         if ($isMember) {
             throw ValidationException::withMessages([
-                'email' => __('Suradnik je već član tima.'),
+                'email' => __('Suradnik je već član organizacije.'),
             ]);
         }
     }

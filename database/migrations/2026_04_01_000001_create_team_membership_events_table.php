@@ -19,6 +19,7 @@ return new class extends Migration
 
         Schema::create('team_membership_events', function (Blueprint $table) use ($userModel, $userTable): void {
             $table->id();
+            $table->uuid('uuid')->nullable()->unique();
             $table->foreignId('team_membership_id')->constrained('team_memberships')->cascadeOnDelete();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->foreignIdFor($userModel, 'actor_user_id')->nullable()->constrained($userTable)->nullOnDelete();

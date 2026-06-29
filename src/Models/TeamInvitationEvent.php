@@ -6,10 +6,13 @@ namespace IvanBaric\Velora\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class TeamInvitationEvent extends Model
 {
     protected $fillable = [
+        'uuid',
         'team_invitation_id',
         'team_id',
         'actor_user_id',
@@ -22,6 +25,15 @@ class TeamInvitationEvent extends Model
         return [
             'meta' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $event): void {
+            if (Schema::hasColumn($event->getTable(), 'uuid') && blank($event->uuid)) {
+                $event->uuid = (string) Str::uuid();
+            }
+        });
     }
 
     public function invitation(): BelongsTo

@@ -21,7 +21,6 @@ enum TeamMembershipStatus: string
 
     public function icon(): string
     {
-        // Flux icon name, or any icon system a consumer decides to map.
         return match ($this) {
             self::Active => 'check-circle',
             self::Suspended => 'pause-circle',
@@ -41,7 +40,7 @@ enum TeamMembershipStatus: string
     public function tooltip(): string
     {
         return match ($this) {
-            self::Active => __('Aktivan član tima.'),
+            self::Active => __('Aktivan suradnik organizacije.'),
             self::Suspended => __('Pristup je privremeno onemogućen.'),
             self::Revoked => __('Pristup je uklonjen.'),
         };

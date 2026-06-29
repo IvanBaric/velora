@@ -32,6 +32,8 @@ final class AttachInvitationMembershipAction
             );
         }
 
+        $grantsOwnerAccess = $invitation->grantsOwnerAccess();
+
         /** @var TeamMembership $membership */
         $membership = TeamMembership::query()
             ->withoutGlobalScopes()
@@ -42,7 +44,7 @@ final class AttachInvitationMembershipAction
                 ],
                 [
                     'status' => TeamMembershipStatus::Active,
-                    'is_owner' => false,
+                    'is_owner' => $grantsOwnerAccess,
                     'invited_by_user_id' => $invitation->invited_by_user_id,
                     'invited_email' => $invitation->email,
                     'joined_at' => now(),
@@ -51,6 +53,10 @@ final class AttachInvitationMembershipAction
 
         if (! $membership->isActive()) {
             $membership->activate((int) $user->getKey());
+        }
+
+        if ($grantsOwnerAccess && ! $membership->is_owner) {
+            $membership->forceFill(['is_owner' => true])->save();
         }
 
         if ($invitation->role_slug) {

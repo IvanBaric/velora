@@ -1,4 +1,4 @@
-<div>
+<div id="team-members-table">
     @if ($memberships->isNotEmpty())
         <div class="admin-list-header lg:grid-cols-[minmax(0,1fr)_15rem_8rem_10rem_5rem]">
             <span>{{ __('Suradnik') }}</span>
@@ -18,6 +18,9 @@
                 ->map(fn ($part) => mb_substr($part, 0, 1))
                 ->implode('');
             $role = $membership->roles->first();
+            $canManageThisMember = $currentUserOwnsTeam
+                && ! $membership->is_owner
+                && (int) $membership->user_id !== (int) $currentUserId;
         @endphp
 
         <article wire:key="member-{{ $membership->uuid }}" class="admin-list-row p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_15rem_8rem_10rem_5rem]">
@@ -88,7 +91,7 @@
                             {{ __('Detalji') }}
                         </flux:menu.item>
 
-                        @if (! $membership->is_owner)
+                        @if ($canManageThisMember)
                             <flux:menu.item icon="shield-check" wire:click="requestRoleChange('{{ $membership->uuid }}')" :disabled="! $rolesAndPermissionsAvailable">
                                 {{ __('Promijeni ulogu') }}
                             </flux:menu.item>
@@ -121,8 +124,8 @@
     @endforelse
 
     @if ($memberships->hasPages())
-        <div class="border-t border-zinc-100/70 px-4 py-3 dark:border-zinc-800/70">
-            {{ $memberships->links() }}
+        <div class="border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <flux:pagination :paginator="$memberships" scroll-to="#team-members-table" />
         </div>
     @endif
 
@@ -270,10 +273,10 @@
 
     <flux:modal wire:model="showRemoveMemberModal" class="space-y-6">
         <div>
-            <flux:heading size="lg">{{ __('Ukloni člana') }}</flux:heading>
+            <flux:heading size="lg">{{ __('Ukloni suradnika') }}</flux:heading>
         </div>
 
-        <flux:text>{{ __('Ukloniti suradnika :name iz ovog tima?', ['name' => $pendingRemoveUserName]) }}</flux:text>
+        <flux:text>{{ __('Ukloniti suradnika :name iz ove organizacije?', ['name' => $pendingRemoveUserName]) }}</flux:text>
 
         <div class="flex justify-end gap-2">
             <flux:button wire:click="cancelRemoveMember" variant="ghost">{{ __('Odustani') }}</flux:button>

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class TeamCreate extends Component
 {
     public string $name = '';
 
+    #[Locked]
     public bool $modal = false;
 
     public function mount(bool $modal = false): void

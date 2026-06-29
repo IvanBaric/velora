@@ -6,15 +6,19 @@ namespace IvanBaric\Velora\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use IvanBaric\Velora\Actions\LeaveTeamAction;
 use IvanBaric\Velora\Actions\UpdateTeamNameAction;
 use IvanBaric\Velora\Contracts\PlanAccess;
+use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
+use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Support\PlanFeatures;
 use IvanBaric\Velora\Support\TeamPermissions;
 use IvanBaric\Velora\Support\TeamPlanUsage;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class TeamSettings extends Component
@@ -24,6 +28,10 @@ class TeamSettings extends Component
     public string $name = '';
 
     public bool $showLeaveTeamModal = false;
+
+    public string $leaveTeamPassword = '';
+
+    public ?string $leaveTeamUnavailableMessage = null;
 
     public bool $showInvitationsModal = false;
 
@@ -37,8 +45,10 @@ class TeamSettings extends Component
 
     public string $createTeamName = '';
 
+    #[Locked]
     public bool $canCreateTeam = false;
 
+    #[Locked]
     public bool $canUpdateTeam = false;
 
     protected $listeners = [
@@ -94,18 +104,51 @@ class TeamSettings extends Component
         $this->showBasicInfoModal = true;
     }
 
+    public function openLeaveTeamModal(): void
+    {
+        $membership = auth()->user()?->membershipForCurrentTeam();
+
+        $this->leaveTeamPassword = '';
+        $this->resetErrorBag('leaveTeamPassword');
+        $this->leaveTeamUnavailableMessage = $this->leaveTeamUnavailableMessage($membership);
+        $this->showLeaveTeamModal = true;
+    }
+
+    public function closeLeaveTeamModal(): void
+    {
+        $this->showLeaveTeamModal = false;
+        $this->leaveTeamPassword = '';
+        $this->leaveTeamUnavailableMessage = null;
+        $this->resetErrorBag('leaveTeamPassword');
+    }
+
     public function confirmLeaveTeam(LeaveTeamAction $leaveTeam): void
     {
         $membership = auth()->user()?->membershipForCurrentTeam();
-        if (! $membership || $membership->is_owner) {
-            $this->showLeaveTeamModal = false;
+        $this->leaveTeamUnavailableMessage = $this->leaveTeamUnavailableMessage($membership);
+
+        if ($this->leaveTeamUnavailableMessage !== null) {
+            return;
+        }
+
+        $this->validate([
+            'leaveTeamPassword' => ['required', 'string'],
+        ], [
+            'leaveTeamPassword.required' => __('Unesite lozinku za potvrdu napuštanja organizacije.'),
+            'leaveTeamPassword.string' => __('Lozinka mora biti tekst.'),
+        ], [
+            'leaveTeamPassword' => __('lozinka'),
+        ]);
+
+        if (! Hash::check($this->leaveTeamPassword, (string) auth()->user()?->password)) {
+            $this->addError('leaveTeamPassword', __('Lozinka nije točna.'));
 
             return;
         }
 
         $result = $leaveTeam->execute($membership, (string) auth()->user()->email, auth()->id());
         $this->toastFromResult($result);
-        $this->showLeaveTeamModal = false;
+        $this->closeLeaveTeamModal();
 
         if (! $result->success) {
             return;
@@ -141,6 +184,7 @@ class TeamSettings extends Component
             'team' => team(),
             'canInviteWithinCurrentPlan' => $invitationBlockedMessage === null,
             'invitationBlockedMessage' => $invitationBlockedMessage,
+            'canLeaveTeam' => $this->canLeaveCurrentTeam(),
         ])->layout((string) config('velora.views.layouts.app', 'layouts.app'));
     }
 
@@ -163,9 +207,44 @@ class TeamSettings extends Component
             $planCode = (string) (team()->plan_code ?: 'starter');
             $planName = __("plans::plans.{$planCode}.name");
 
-            return __('Invitations are not available on the :plan plan because the team member limit has been reached. Upgrade your plan to add collaborators.', [
+            return __('Pozivnice nisu dostupne na planu :plan jer je dosegnut limit suradnika. Nadogradite plan kako biste dodali nove suradnike.', [
                 'plan' => $planName,
             ]);
         }
+    }
+
+    protected function canLeaveCurrentTeam(): bool
+    {
+        return $this->leaveTeamUnavailableMessage(auth()->user()?->membershipForCurrentTeam()) === null;
+    }
+
+    protected function leaveTeamUnavailableMessage(mixed $membership): ?string
+    {
+        if ((bool) auth()->user()?->is_superadmin) {
+            return __('Tehnička podrška ne može napustiti organizaciju.');
+        }
+
+        if (! $membership instanceof TeamMembership) {
+            return __('Nemate aktivno članstvo u ovoj organizaciji.');
+        }
+
+        if ($this->activeMemberCount((int) $membership->team_id) <= 1) {
+            return __('Organizaciju nije moguće napustiti jer ste posljednji aktivni suradnik.');
+        }
+
+        if ($membership->is_owner) {
+            return __('Vlasnik organizacije ne može napustiti organizaciju. Prvo prenesite vlasništvo drugom suradniku.');
+        }
+
+        return null;
+    }
+
+    protected function activeMemberCount(int $teamId): int
+    {
+        return TeamMembership::query()
+            ->withoutGlobalScopes()
+            ->where('team_id', $teamId)
+            ->where('status', TeamMembershipStatus::Active->value)
+            ->count();
     }
 }

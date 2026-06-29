@@ -24,6 +24,12 @@ final class AcceptInvitationAction
         $this->ensureInvitationRoleCanBeAssigned($invitation);
 
         [$acceptedInvitation, $membership] = DB::transaction(function () use ($user, $invitation): array {
+            /** @var TeamInvitation $invitation */
+            $invitation = TeamInvitation::query()
+                ->whereKey($invitation->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $membership = $this->attachInvitationMembership->execute($user, $invitation);
 
             $invitation->markAccepted((int) $user->getKey(), [
@@ -45,7 +51,7 @@ final class AcceptInvitationAction
             user: $user,
             invitation: $acceptedInvitation,
             membership: $membership,
-            message: __('Pridružili ste se timu :team.', ['team' => $acceptedInvitation->team->name]),
+            message: __('Pridružili ste se organizaciji :team.', ['team' => $acceptedInvitation->team->name]),
         );
     }
 
