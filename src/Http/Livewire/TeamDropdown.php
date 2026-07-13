@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace IvanBaric\Velora\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
+use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -23,7 +24,11 @@ class TeamDropdown extends Component
         return view('velora::livewire.team-dropdown', [
             'activeTeam' => team(),
             // memberships() is scoped to the current team; dropdown must show all teams the user belongs to.
-            'allTeams' => auth()->user()?->memberships()->withoutGlobalScopes()->with('team')->get()
+            'allTeams' => auth()->user()?->memberships()
+                ->withoutGlobalScopes()
+                ->where('status', TeamMembershipStatus::Active->value)
+                ->with('team')
+                ->get()
                 ->pluck('team')
                 ->filter()
                 ->values() ?? collect(),

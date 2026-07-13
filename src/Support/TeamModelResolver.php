@@ -15,13 +15,7 @@ class TeamModelResolver
      */
     public function className(): string
     {
-        $configured = config('velora.models.team');
-
-        if (is_string($configured) && class_exists($configured)) {
-            return $configured;
-        }
-
-        return Team::class;
+        return VeloraConfigResolver::teamModel();
     }
 
     public function instance(): Model

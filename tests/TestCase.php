@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Tests\Fixtures\User;
 use IvanBaric\Velora\VeloraServiceProvider;
+use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 abstract class TestCase extends OrchestraTestCase
@@ -21,6 +22,7 @@ abstract class TestCase extends OrchestraTestCase
     protected function getPackageProviders($app): array
     {
         return [
+            LivewireServiceProvider::class,
             VeloraServiceProvider::class,
         ];
     }

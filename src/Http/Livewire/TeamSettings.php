@@ -134,7 +134,7 @@ class TeamSettings extends Component
         $this->validate([
             'leaveTeamPassword' => ['required', 'string'],
         ], [
-            'leaveTeamPassword.required' => __('Unesite lozinku za potvrdu napuštanja organizacije.'),
+            'leaveTeamPassword.required' => __('Obavezno polje'),
             'leaveTeamPassword.string' => __('Lozinka mora biti tekst.'),
         ], [
             'leaveTeamPassword' => __('lozinka'),
@@ -232,7 +232,7 @@ class TeamSettings extends Component
             return __('Organizaciju nije moguće napustiti jer ste posljednji aktivni suradnik.');
         }
 
-        if ($membership->is_owner) {
+        if ($membership->isOwner()) {
             return __('Vlasnik organizacije ne može napustiti organizaciju. Prvo prenesite vlasništvo drugom suradniku.');
         }
 

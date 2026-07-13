@@ -16,6 +16,7 @@ use IvanBaric\Velora\Events\RoleAssigned;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Models\UserRole;
+use IvanBaric\Velora\Support\PermissionOverrides;
 use IvanBaric\Velora\Support\RolePreview;
 
 trait HasTeamRolesPermissions
@@ -147,6 +148,11 @@ trait HasTeamRolesPermissions
     public function hasRole(int|string|Role $role, Model|int|null $team = null): bool
     {
         $teamId = $this->resolveTeamId($team);
+
+        if (! $this->hasActiveMembershipForTeam($teamId)) {
+            return false;
+        }
+
         $resolvedRole = $this->resolveRole($role, $teamId);
         if (! $resolvedRole) {
             return false;
@@ -163,20 +169,41 @@ trait HasTeamRolesPermissions
     public function hasPermission(string $permissionCode, Model|int|null $team = null): bool
     {
         $teamId = $this->resolveTeamId($team);
+        $previewAllows = null;
 
         if (app()->bound(RolePreview::class)) {
             $previewAllows = app(RolePreview::class)->allows($permissionCode, $teamId);
-
-            if ($previewAllows !== null) {
-                return $previewAllows;
-            }
         }
 
-        if ($this->isTeamOwner($teamId)) {
-            return true;
+        // Role preview may narrow access for testing, but it must never grant
+        // a permission the authenticated user does not already have.
+        if ($previewAllows === false) {
+            return false;
         }
 
         if ($this->isGlobalSuperadmin()) {
+            return true;
+        }
+
+        if (! $this->hasActiveMembershipForTeam($teamId)) {
+            return false;
+        }
+
+        $isTeamOwner = $this->isTeamOwner($teamId);
+        $roleSlugs = $this->activeRoleSlugs($teamId);
+        $permissionOverrides = app(PermissionOverrides::class);
+        $ownerOverride = $isTeamOwner ? $permissionOverrides->forOwner($permissionCode) : null;
+        $roleOverride = $permissionOverrides->forRoles($roleSlugs, $permissionCode);
+
+        if ($ownerOverride === false || $roleOverride === false) {
+            return false;
+        }
+
+        if ($ownerOverride === true || $roleOverride === true) {
+            return true;
+        }
+
+        if ($isTeamOwner) {
             return true;
         }
 
@@ -195,6 +222,24 @@ trait HasTeamRolesPermissions
                         ->where('is_active', true));
             })
             ->exists();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    protected function activeRoleSlugs(int $teamId): Collection
+    {
+        return UserRole::query()
+            ->active()
+            ->where('user_id', $this->resolveRoleOwnerId())
+            ->where('team_id', $teamId)
+            ->whereHas('role', fn ($query) => $query->withoutGlobalScopes()->where('is_active', true))
+            ->with('role:id,slug')
+            ->get()
+            ->pluck('role.slug')
+            ->filter()
+            ->map(fn (mixed $slug): string => (string) $slug)
+            ->values();
     }
 
     public function hasPermissionTo(string $permissionCode, Model|int|null $team = null): bool
@@ -217,17 +262,31 @@ trait HasTeamRolesPermissions
     protected function isTeamOwner(int $teamId): bool
     {
         if ($this instanceof TeamMembership) {
-            return (int) $this->team_id === $teamId && (bool) $this->is_owner;
+            return (int) $this->team_id === $teamId && $this->isOwner();
         }
 
-        if (! method_exists($this, 'memberships')) {
+        if (! method_exists($this, 'ownsTeam')) {
             return false;
         }
 
-        return $this->memberships()
+        return $this->ownsTeam($teamId);
+    }
+
+    protected function hasActiveMembershipForTeam(int $teamId): bool
+    {
+        if ($teamId <= 0) {
+            return false;
+        }
+
+        if ($this instanceof TeamMembership) {
+            return (int) $this->team_id === $teamId
+                && $this->status === TeamMembershipStatus::Active;
+        }
+
+        return TeamMembership::query()
             ->withoutGlobalScopes()
+            ->where('user_id', $this->resolveRoleOwnerId())
             ->where('team_id', $teamId)
-            ->where('is_owner', true)
             ->where('status', TeamMembershipStatus::Active->value)
             ->exists();
     }

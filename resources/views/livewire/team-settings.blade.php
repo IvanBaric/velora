@@ -20,10 +20,11 @@
     ];
 @endphp
 
-<x-admin-ui::page class="admin-page-compact">
+<x-admin-ui::page>
     <x-admin-ui::page-header
         :title="__('Suradnici')"
         :description="__('Upravljajte suradnicima, pozivnicama i ulogama.')"
+        icon="users"
     >
         <x-slot:actions>
             @if ($showTeamMenu)
@@ -149,12 +150,13 @@
                 <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ __('Kreirajte dodatni radni prostor i automatski postanite vlasnik.') }}</flux:text>
             </div>
 
-            <form wire:submit="createTeam" class="space-y-6">
-                <flux:input wire:model="createTeamName" label="{{ __('Naziv organizacije') }}" placeholder="{{ __('Npr. Učenička zadruga Zagreb') }}" clearable />
+            <form wire:submit="createTeam" wire:loading.class="admin-panel-content-loading" wire:target="createTeam" class="relative space-y-6">
+                <x-admin-ui::loading-overlay target="createTeam" :text="__('Spremanje...')" />
+                <flux:input wire:model="createTeamName" label="{{ __('Naziv organizacije') }}" placeholder="{{ __('Npr. Učenička zadruga Zagreb') }}" clearable data-required />
 
                 <div class="flex justify-end gap-2">
                     <flux:button type="button" wire:click="closeCreateTeamModal" variant="ghost">{{ __('Odustani') }}</flux:button>
-                    <flux:button type="submit" variant="primary">{{ __('Kreiraj organizaciju') }}</flux:button>
+                    <x-admin-ui::submit-button target="createTeam" icon="plus">{{ __('Kreiraj organizaciju') }}</x-admin-ui::submit-button>
                 </div>
             </form>
         </flux:modal>
@@ -163,7 +165,7 @@
     @if ($canUpdateTeam)
         <flux:modal wire:model="showBasicInfoModal" class="space-y-6 md:w-[30rem]">
             <div class="space-y-2">
-                <div class="flex size-11 items-center justify-center rounded-xl bg-pink-50 text-pink-600 ring-1 ring-pink-200 dark:bg-pink-500/10 dark:text-pink-300 dark:ring-pink-400/20">
+                <div class="flex size-11 items-center justify-center rounded-lg bg-pink-50 text-pink-600 ring-1 ring-pink-200 dark:bg-pink-500/10 dark:text-pink-300 dark:ring-pink-400/20">
                     <flux:icon icon="building-office" class="size-5" />
                 </div>
                 <flux:heading size="lg">{{ __('Uredi organizaciju') }}</flux:heading>
@@ -172,17 +174,19 @@
                 </flux:text>
             </div>
 
-            <form wire:submit="updateTeamName" class="space-y-6">
+            <form wire:submit="updateTeamName" wire:loading.class="admin-panel-content-loading" wire:target="updateTeamName" class="relative space-y-6">
+                <x-admin-ui::loading-overlay target="updateTeamName" :text="__('Spremanje...')" />
                 <flux:input
                     wire:model="name"
                     label=""
                     :placeholder="__('Unesite naziv organizacije...')"
                     clearable
+                    data-required
                 />
 
                 <div class="flex justify-end gap-2">
                     <flux:button type="button" wire:click="$set('showBasicInfoModal', false)" variant="ghost">{{ __('Odustani') }}</flux:button>
-                    <flux:button type="submit" variant="primary" icon="check">{{ __('Spremi') }}</flux:button>
+                    <x-admin-ui::submit-button target="updateTeamName">{{ __('Spremi') }}</x-admin-ui::submit-button>
                 </div>
             </form>
         </flux:modal>
@@ -190,7 +194,7 @@
 
     <flux:modal wire:model="showLeaveTeamModal" class="space-y-6 md:w-[30rem]">
         <div class="space-y-2">
-            <div class="flex size-11 items-center justify-center rounded-xl bg-red-50 text-red-600 ring-1 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-400/20">
+            <div class="flex size-11 items-center justify-center rounded-lg bg-red-50 text-red-600 ring-1 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-400/20">
                 <flux:icon icon="arrow-right-start-on-rectangle" class="size-5" />
             </div>
             <flux:heading size="lg">{{ __('Napusti organizaciju') }}</flux:heading>
@@ -200,7 +204,7 @@
         </div>
 
         @if ($leaveTeamUnavailableMessage)
-            <div class="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-950/5 dark:bg-zinc-900/70 dark:text-zinc-300 dark:ring-white/10">
+            <div class="admin-inset-panel p-4 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
                 {{ $leaveTeamUnavailableMessage }}
             </div>
 
@@ -209,7 +213,7 @@
             </div>
         @else
             <form wire:submit="confirmLeaveTeam" class="space-y-6">
-                <div class="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-950/5 dark:bg-zinc-900/70 dark:text-zinc-300 dark:ring-white/10">
+                <div class="admin-inset-panel p-4 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
                     {{ __('Za potvrdu unesite svoju lozinku. Ovo sprječava slučajno napuštanje organizacije. Ako se predomislite, vlasnik ili administrator morat će vam poslati novu pozivnicu.') }}
                 </div>
 
@@ -218,6 +222,7 @@
                     :label="__('Lozinka')"
                     type="password"
                     autocomplete="current-password"
+                    data-required
                     viewable
                 />
 

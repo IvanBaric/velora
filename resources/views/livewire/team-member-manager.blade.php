@@ -19,7 +19,7 @@
                 ->implode('');
             $role = $membership->roles->first();
             $canManageThisMember = $currentUserOwnsTeam
-                && ! $membership->is_owner
+                && ! $membership->isOwner()
                 && (int) $membership->user_id !== (int) $currentUserId;
         @endphp
 
@@ -48,7 +48,7 @@
                 <span class="me-2 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500 lg:hidden">{{ __('Status') }}</span>
                 <flux:tooltip :content="$membership->status?->tooltip() ?? ''" position="bottom">
                     <span class="inline-flex items-center gap-2">
-                        @if ($membership->is_owner)
+                        @if ($membership->isOwner())
                             <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20">
                                 <flux:icon name="key" class="size-3.5" />
                                 {{ __('Vlasnik') }}
@@ -142,7 +142,7 @@
             @endphp
 
             <div class="flex items-start gap-4">
-                <div class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-sm font-semibold uppercase text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
+                <div class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-sm font-semibold uppercase text-accent-content ring-1 ring-accent/15 dark:bg-accent/15 dark:text-accent-content dark:ring-accent/25">
                     {{ $detailsInitials ?: '?' }}
                 </div>
 
@@ -177,7 +177,7 @@
             </div>
 
             <div class="grid gap-3 text-sm sm:grid-cols-2">
-                <section class="rounded-2xl bg-zinc-50/70 p-4 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10">
+                <section class="admin-inset-panel p-4">
                     <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Pristup') }}</p>
 
                     <dl class="mt-4 space-y-3">
@@ -196,7 +196,7 @@
                     </dl>
                 </section>
 
-                <section class="rounded-2xl bg-zinc-50/70 p-4 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10">
+                <section class="admin-inset-panel p-4">
                     <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Aktivnost') }}</p>
 
                     <dl class="mt-4 space-y-3">
@@ -213,7 +213,7 @@
                 </section>
 
                 @if (data_get($membershipDetails, 'invited_email') || data_get($membershipDetails, 'invited_by_name') || data_get($membershipDetails, 'invited_by_email'))
-                    <section class="rounded-2xl bg-zinc-50/70 p-4 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10 sm:col-span-2">
+                    <section class="admin-inset-panel p-4 sm:col-span-2">
                         <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{{ __('Pozivnica') }}</p>
 
                         <dl class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -237,8 +237,8 @@
                 @endif
             </div>
         @else
-            <div class="flex items-center gap-3 rounded-2xl bg-zinc-50/70 p-4 ring-1 ring-zinc-950/5 dark:bg-zinc-900/80 dark:ring-white/10">
-                <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:text-zinc-500 dark:ring-white/10">
+            <div class="admin-inset-panel flex items-center gap-3 p-4">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-zinc-400 ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:text-zinc-500 dark:ring-white/10">
                     <flux:icon icon="arrow-path" class="size-5 animate-spin" />
                 </div>
 
@@ -251,7 +251,9 @@
         </div>
     </flux:modal>
 
-    <flux:modal wire:model="showRoleChangeModal" class="space-y-6">
+    <flux:modal wire:model="showRoleChangeModal" class="relative space-y-6">
+        <x-admin-ui::loading-overlay target="confirmRoleChange" :text="__('Spremanje...')" />
+
         <div>
             <flux:heading size="lg">{{ __('Promijeni ulogu') }}</flux:heading>
             @if ($pendingRoleUserName)
@@ -259,15 +261,15 @@
             @endif
         </div>
 
-        <flux:select wire:model="pendingRole" label="{{ __('Uloga') }}" variant="listbox">
+        <flux:select wire:model="pendingRole" label="{{ __('Uloga') }}" variant="listbox" data-required>
             @foreach ($availableRoles as $slug => $roleName)
                 <flux:select.option value="{{ $slug }}">{{ __($roleName) }}</flux:select.option>
             @endforeach
         </flux:select>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2" wire:loading.class="admin-panel-content-loading" wire:target="confirmRoleChange">
             <flux:button wire:click="cancelRoleChange" variant="ghost">{{ __('Odustani') }}</flux:button>
-            <flux:button wire:click="confirmRoleChange" variant="primary">{{ __('Spremi') }}</flux:button>
+            <x-admin-ui::submit-button type="button" target="confirmRoleChange" wire:click="confirmRoleChange">{{ __('Spremi') }}</x-admin-ui::submit-button>
         </div>
     </flux:modal>
 

@@ -48,11 +48,17 @@ final class TeamInvitationController
 
         set_current_team($accepted->invitation->team_id);
 
-        $routeName = (string) config('velora.invitations.accept_redirect_route', 'teams.settings');
+        $routeName = (string) config('velora.invitations.accept_redirect_route', 'dashboard');
         $target = $routeName !== '' && app('router')->has($routeName)
             ? route($routeName)
             : '/';
 
-        return redirect($target)->with('status', $accepted->message);
+        return redirect($target)
+            ->with('status', $accepted->message)
+            ->with('velora.toast', [
+                'heading' => __('Uspješna registracija'),
+                'text' => __('Uspješno ste registrirani i povezani s ustanovom.'),
+                'variant' => 'success',
+            ]);
     }
 }

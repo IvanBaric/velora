@@ -40,10 +40,6 @@ final class PreviewInvitationAction
             ->firstOrFail();
 
         if (! $hasValidSignature) {
-            if ($invitation->status === TeamInvitationStatus::Pending) {
-                $invitation->markExpired();
-            }
-
             throw new InvalidInvitation(__('Link pozivnice je istekao ili nije valjan.'));
         }
 

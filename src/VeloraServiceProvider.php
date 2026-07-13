@@ -27,13 +27,14 @@ use IvanBaric\Velora\Http\Middleware\VerifyMembership;
 use IvanBaric\Velora\Listeners\SendTeamMemberJoinedNotifications;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Policies\TeamPolicy;
-use IvanBaric\Velora\Support\AllowAllPlanAccess;
+use IvanBaric\Velora\Support\PermissionOverrides;
 use IvanBaric\Velora\Support\PermissionRegistrar;
 use IvanBaric\Velora\Support\RolePreview;
 use IvanBaric\Velora\Support\SystemAccessSynchronizer;
 use IvanBaric\Velora\Support\TeamContextResolver;
 use IvanBaric\Velora\Support\TeamModelResolver;
 use IvanBaric\Velora\Support\UserModelResolver;
+use IvanBaric\Velora\Support\VeloraConfigResolver;
 use Livewire\Livewire;
 
 class VeloraServiceProvider extends ServiceProvider
@@ -44,14 +45,13 @@ class VeloraServiceProvider extends ServiceProvider
 
         $this->app->singleton(TeamContextResolver::class);
         $this->app->singleton(PermissionRegistrar::class);
+        $this->app->singleton(PermissionOverrides::class);
         $this->app->singleton(RolePreview::class);
         $this->app->singleton(SystemAccessSynchronizer::class);
         $this->app->singleton(UserModelResolver::class);
         $this->app->singleton(TeamModelResolver::class);
         $this->app->singleton(PlanAccess::class, function ($app): PlanAccess {
-            $resolver = config('velora.plan_access.resolver', AllowAllPlanAccess::class);
-
-            return $app->make(is_string($resolver) && $resolver !== '' ? $resolver : AllowAllPlanAccess::class);
+            return $app->make(VeloraConfigResolver::planAccessResolver());
         });
 
         $helpers = __DIR__.'/helpers.php';
@@ -132,6 +132,10 @@ class VeloraServiceProvider extends ServiceProvider
         if (! class_exists(Livewire::class)) {
             return;
         }
+
+        Livewire::addPersistentMiddleware([
+            SetTeam::class,
+        ]);
 
         Livewire::component('roles.role-manager', RoleManager::class);
         Livewire::component('teams.team-settings', TeamSettings::class);

@@ -23,23 +23,34 @@
         <form method="POST" action="{{ route('teams.invitation.accept.store', ['token' => $token] + request()->query()) }}" class="flex flex-col gap-6">
             @csrf
 
-            <flux:input
-                name="name"
-                label="{{ __('Ime') }}"
-                :value="old('name', $existingUser?->name)"
-                clearable
-                :disabled="$existingUser !== null"
-            />
+            @if ($existingUser)
+                <flux:input
+                    name="name"
+                    label="{{ __('Ime') }}"
+                    :value="old('name', $existingUser?->name)"
+                    clearable
+                    disabled
+                />
+            @else
+                <flux:input
+                    name="name"
+                    label="{{ __('Ime') }}"
+                    :value="old('name')"
+                    clearable
+                    data-required
+                />
+            @endif
 
             <flux:input name="email" label="{{ __('Email') }}" :value="$invitation->email" clearable disabled />
 
-            @unless ($currentUser && $existingUser && $currentUser->getKey() === $existingUser->getKey())
-                <flux:input name="password" label="{{ $existingUser ? __('Lozinka') : __('Postavite lozinku') }}" type="password" clearable required />
-            @endunless
-
-            @unless ($existingUser)
-                <flux:input name="password_confirmation" label="{{ __('Potvrdite lozinku') }}" type="password" clearable required />
-            @endunless
+            @if ($existingUser)
+                @unless ($currentUser && $currentUser->getKey() === $existingUser->getKey())
+                    <flux:input name="password" label="{{ __('Lozinka') }}" type="password" clearable data-required />
+                @endunless
+            @else
+                <flux:input name="password" label="{{ __('Postavite lozinku') }}" type="password" clearable data-required passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}" />
+                <flux:input name="password_confirmation" label="{{ __('Potvrdite lozinku') }}" type="password" clearable data-required passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}" />
+            @endif
 
             <flux:button type="submit" variant="primary">
                 {{ $existingUser ? __('Prihvati pozivnicu') : __('Kreiraj račun i pridruži se') }}

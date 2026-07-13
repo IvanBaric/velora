@@ -155,7 +155,7 @@ class RoleManager extends Component
                 'selectedPermissionItems' => ['required', 'array', 'min:1'],
             ],
             [
-                'selectedPermissionItems.required' => __('Odaberite barem jednu dozvolu za ovu ulogu.'),
+                'selectedPermissionItems.required' => __('Obavezno polje'),
                 'selectedPermissionItems.min' => __('Odaberite barem jednu dozvolu za ovu ulogu.'),
             ],
         );

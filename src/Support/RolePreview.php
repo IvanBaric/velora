@@ -34,17 +34,17 @@ class RolePreview
             return null;
         }
 
+        if ((int) ($state['team_id'] ?? 0) !== $teamId) {
+            return null;
+        }
+
         $query = Role::query()
             ->withoutGlobalScopes()
             ->availableToTeam($teamId);
 
         $roleId = (int) ($state['role_id'] ?? 0);
         if ($roleId > 0) {
-            $role = (clone $query)->whereKey($roleId)->first();
-
-            if ($role) {
-                return $role;
-            }
+            return (clone $query)->whereKey($roleId)->first();
         }
 
         $roleSlug = (string) ($state['role_slug'] ?? '');

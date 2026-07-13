@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Gate;
 use IvanBaric\Velora\Actions\RemoveTeamMemberAction;
 use IvanBaric\Velora\Actions\SyncMembershipRoleAction;
 use IvanBaric\Velora\Contracts\PlanAccess;
-use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Http\Livewire\Concerns\InteractsWithActionResults;
@@ -108,7 +107,7 @@ class TeamMemberManager extends Component
             'status_label' => $membership->status?->label(),
             'status_icon' => $membership->status?->icon(),
             'status_tooltip' => $membership->status?->tooltip(),
-            'is_owner' => (bool) $membership->is_owner,
+            'is_owner' => $membership->isOwner(),
             'role' => $membership->roles->first()?->name,
             'joined_at' => $membership->joined_at?->format('d.m.Y. H:i'),
             'last_seen_at' => $membership->last_seen_at?->format('d.m.Y. H:i'),
@@ -295,31 +294,21 @@ class TeamMemberManager extends Component
     protected function canCurrentUserChangeRole(TeamMembership $membership): bool
     {
         return $this->currentUserOwnsTeam()
-            && ! $membership->is_owner
+            && ! $membership->isOwner()
             && (int) $membership->user_id !== (int) auth()->id();
     }
 
     protected function canCurrentUserRemoveMember(TeamMembership $membership): bool
     {
         return $this->currentUserOwnsTeam()
-            && ! $membership->is_owner
+            && ! $membership->isOwner()
             && (int) $membership->user_id !== (int) auth()->id();
     }
 
     protected function currentUserOwnsTeam(): bool
     {
-        $userId = auth()->id();
+        $user = auth()->user();
 
-        if (! $userId) {
-            return false;
-        }
-
-        return TeamMembership::query()
-            ->withoutGlobalScopes()
-            ->where('team_id', team()->getKey())
-            ->where('user_id', (int) $userId)
-            ->where('is_owner', true)
-            ->where('status', TeamMembershipStatus::Active->value)
-            ->exists();
+        return $user && method_exists($user, 'ownsTeam') && $user->ownsTeam((int) team()->getKey());
     }
 }

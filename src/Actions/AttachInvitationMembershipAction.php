@@ -55,8 +55,8 @@ final class AttachInvitationMembershipAction
             $membership->activate((int) $user->getKey());
         }
 
-        if ($grantsOwnerAccess && ! $membership->is_owner) {
-            $membership->forceFill(['is_owner' => true])->save();
+        if ($grantsOwnerAccess && ! $membership->isOwner()) {
+            $membership->grantOwnerAccess((int) $user->getKey());
         }
 
         if ($invitation->role_slug) {

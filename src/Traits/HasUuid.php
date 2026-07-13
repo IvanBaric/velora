@@ -4,21 +4,10 @@ declare(strict_types=1);
 
 namespace IvanBaric\Velora\Traits;
 
-use Illuminate\Support\Str;
-
+/**
+ * @deprecated Use IvanBaric\Corexis\Concerns\HasUuid directly in new models.
+ */
 trait HasUuid
 {
-    protected static function bootHasUuid(): void
-    {
-        static::creating(function ($model): void {
-            if (! $model->getAttribute('uuid')) {
-                $model->setAttribute('uuid', (string) Str::uuid());
-            }
-        });
-    }
-
-    public function getRouteKeyName(): string
-    {
-        return 'uuid';
-    }
+    use \IvanBaric\Corexis\Concerns\HasUuid;
 }

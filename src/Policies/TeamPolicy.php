@@ -33,6 +33,6 @@ class TeamPolicy
             return false;
         }
 
-        return $membership->is_owner || $membership->hasPermissionTo(TeamPermissions::MANAGE_MEMBERS);
+        return $membership->hasPermissionTo(TeamPermissions::MANAGE_MEMBERS);
     }
 }

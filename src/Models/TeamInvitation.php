@@ -232,7 +232,7 @@ class TeamInvitation extends Model
 
     public static function storesOwnerFlag(): bool
     {
-        $model = new static();
+        $model = new static;
         $schema = $model->getConnection()->getSchemaBuilder();
         $table = $model->getTable();
 

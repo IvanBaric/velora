@@ -59,6 +59,34 @@ return [
         'superadmin_attribute' => env('VELORA_SUPERADMIN_ATTRIBUTE'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authorization Overrides
+    |--------------------------------------------------------------------------
+    |
+    | Override effective permissions without changing role records in the
+    | database. Use permission codes such as "teams.update", or team aliases
+    | such as "can_change_team_name" for common team capabilities.
+    |
+    | Boolean false denies a capability even if a role has it or the member is
+    | an owner. Boolean true grants a capability even if the role does not have
+    | a matching permission item. Missing keys fall back to normal RBAC.
+    |
+    */
+    'authorization' => [
+        'overrides' => [
+            'owner' => [
+                // TeamPermissions::TEAMS_UPDATE => false,
+                // 'can_change_team_name' => false,
+            ],
+            'roles' => [
+                // 'admin' => [
+                //     TeamPermissions::MANAGE_ROLES => false,
+                // ],
+            ],
+        ],
+    ],
+
     'plan_access' => [
         'resolver' => AllowAllPlanAccess::class,
         'default_plan' => 'starter',
@@ -110,7 +138,7 @@ return [
 
     'invitations' => [
         'expires_after_days' => (int) env('VELORA_INVITATION_EXPIRES_AFTER_DAYS', 7),
-        'accept_redirect_route' => env('VELORA_INVITATION_ACCEPT_REDIRECT_ROUTE', 'teams.settings'),
+        'accept_redirect_route' => env('VELORA_INVITATION_ACCEPT_REDIRECT_ROUTE', 'dashboard'),
     ],
 
     'mail' => [
@@ -124,7 +152,7 @@ return [
         'prefix' => env('VELORA_ROUTES_PREFIX', 'app'),
         'team_segment' => env('VELORA_ROUTES_TEAM_SEGMENT', 'teams'),
         'authenticated_middleware' => ['web', 'auth', 'set.team'],
-        'public_middleware' => ['web'],
+        'public_middleware' => ['web', 'throttle:30,1'],
     ],
 
     'permissions' => [

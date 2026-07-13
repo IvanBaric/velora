@@ -103,6 +103,35 @@ class TeamMembership extends Model
         return $this->hasPermission($permissionCode);
     }
 
+    public function isOwner(): bool
+    {
+        return (bool) $this->is_owner;
+    }
+
+    public function grantOwnerAccess(?int $actorUserId = null): ActionResult
+    {
+        if ($this->isOwner()) {
+            return ActionResult::success(__('Članstvo već ima vlasnički pristup.'));
+        }
+
+        $this->forceFill(['is_owner' => true])->save();
+        $this->recordEvent('owner_granted', $actorUserId);
+
+        return ActionResult::success(__('Vlasnički pristup je dodijeljen.'));
+    }
+
+    public function revokeOwnerAccess(?int $actorUserId = null): ActionResult
+    {
+        if (! $this->isOwner()) {
+            return ActionResult::success(__('Članstvo nema vlasnički pristup.'));
+        }
+
+        $this->forceFill(['is_owner' => false])->save();
+        $this->recordEvent('owner_revoked', $actorUserId);
+
+        return ActionResult::success(__('Vlasnički pristup je uklonjen.'));
+    }
+
     public function activate(?int $actorUserId = null): ActionResult
     {
         if (! $this->canActivate()) {
@@ -175,8 +204,8 @@ class TeamMembership extends Model
             $membership->activate();
         }
 
-        if ($isOwner && ! $membership->is_owner) {
-            $membership->forceFill(['is_owner' => true])->save();
+        if ($isOwner && ! $membership->isOwner()) {
+            $membership->grantOwnerAccess();
         }
 
         if ($membership->wasRecentlyCreated) {

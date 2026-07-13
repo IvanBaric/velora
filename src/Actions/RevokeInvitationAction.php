@@ -20,21 +20,21 @@ final class RevokeInvitationAction
             return $result;
         }
 
-        if (! $invitation->canBeRevoked()) {
-            return ActionResult::error(__('Prihvaćene pozivnice nije moguće opozvati.'));
-        }
-
-        DB::transaction(function () use ($invitation, $actorUserId, $meta): void {
+        return DB::transaction(function () use ($invitation, $actorUserId, $meta): ActionResult {
             /** @var TeamInvitation $invitation */
             $invitation = TeamInvitation::query()
                 ->whereKey($invitation->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $invitation->markRevoked($actorUserId, $meta + ['reason' => 'manual_revoke']);
-        });
+            if (! $invitation->canBeRevoked()) {
+                return ActionResult::error(__('Prihvaćene pozivnice nije moguće opozvati.'));
+            }
 
-        return ActionResult::success(__('Pozivnica je opozvana.'));
+            $invitation->markRevoked($actorUserId, $meta + ['reason' => 'manual_revoke']);
+
+            return ActionResult::success(__('Pozivnica je opozvana.'));
+        });
     }
 
     private function authorizeVeloraAction(string $ability, mixed $arguments = []): ?ActionResult

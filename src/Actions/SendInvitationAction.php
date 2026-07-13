@@ -26,6 +26,12 @@ final class SendInvitationAction
     {
         $this->authorizeActionOrFail(TeamPermissions::MANAGE_MEMBERS, $teamId);
 
+        if ($isOwner && ! $this->currentActorCanGrantOwnerAccess($teamId)) {
+            throw ValidationException::withMessages([
+                'email' => __('Samo vlasnik organizacije može poslati pozivnicu s vlasničkim pristupom.'),
+            ]);
+        }
+
         $normalizedEmail = TeamInvitation::normalizeEmail($email);
         $this->ensureUserIsNotAlreadyMember($normalizedEmail, $teamId);
         $this->ensureRoleExists($roleSlug, $teamId);
@@ -141,5 +147,20 @@ final class SendInvitationAction
             ->availableToTeam($teamId)
             ->where('slug', $invitation->role_slug)
             ->value('name') ?? $invitation->role_slug);
+    }
+
+    private function currentActorCanGrantOwnerAccess(int $teamId): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        $superadminAttribute = config('velora.access.superadmin_attribute');
+        if (is_string($superadminAttribute) && $superadminAttribute !== '' && (bool) data_get($user, $superadminAttribute)) {
+            return true;
+        }
+
+        return method_exists($user, 'ownsTeam') && $user->ownsTeam($teamId);
     }
 }

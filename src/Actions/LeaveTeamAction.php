@@ -25,7 +25,7 @@ final class LeaveTeamAction
                 return ActionResult::error(__('Organizaciju nije moguće napustiti jer ste posljednji aktivni suradnik.'));
             }
 
-            if ($membership->is_owner) {
+            if ($membership->isOwner()) {
                 return ActionResult::error(__('Vlasnik organizacije ne može napustiti organizaciju na ovaj način.'));
             }
 

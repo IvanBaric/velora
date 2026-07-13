@@ -6,7 +6,6 @@ namespace IvanBaric\Velora\Actions;
 
 use Illuminate\Support\Facades\DB;
 use IvanBaric\Corexis\Concerns\AuthorizesActions;
-use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
 use IvanBaric\Velora\Support\ActionResult;
@@ -26,7 +25,7 @@ final class RemoveTeamMemberAction
             return ActionResult::error(__('Samo vlasnik organizacije može ukloniti suradnike.'));
         }
 
-        if ($membership->is_owner) {
+        if ($membership->isOwner()) {
             return ActionResult::error(__('Vlasnika organizacije nije moguće ukloniti.'));
         }
 
@@ -68,18 +67,8 @@ final class RemoveTeamMemberAction
 
     private function currentActorOwnsTeam(int $teamId): bool
     {
-        $userId = auth()->id();
+        $user = auth()->user();
 
-        if (! $userId) {
-            return false;
-        }
-
-        return TeamMembership::query()
-            ->withoutGlobalScopes()
-            ->where('team_id', $teamId)
-            ->where('user_id', (int) $userId)
-            ->where('is_owner', true)
-            ->where('status', TeamMembershipStatus::Active->value)
-            ->exists();
+        return $user && method_exists($user, 'ownsTeam') && $user->ownsTeam($teamId);
     }
 }

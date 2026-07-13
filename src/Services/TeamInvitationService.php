@@ -50,7 +50,12 @@ final class TeamInvitationService
         set_current_team($accepted->invitation->team_id);
 
         return redirect($this->acceptRedirectUrl())
-            ->with('status', $accepted->message);
+            ->with('status', $accepted->message)
+            ->with('velora.toast', [
+                'heading' => __('Uspješna registracija'),
+                'text' => __('Uspješno ste registrirani i povezani s ustanovom.'),
+                'variant' => 'success',
+            ]);
     }
 
     public function acceptFromRequest(Request $request, string $token, bool $hasValidSignature): AcceptedInvitationData
@@ -69,8 +74,11 @@ final class TeamInvitationService
 
         if ($existingUser instanceof Model) {
             $user = $this->authenticateExistingUser($request, $existingUser, $currentUser);
+            $accepted = $this->acceptInvitation->execute($user, $invitation);
 
-            return $this->acceptInvitation->execute($user, $invitation);
+            $this->loginAcceptedUser($request, $user);
+
+            return $accepted;
         }
 
         $validated = Validator::make($request->all(), [
@@ -78,16 +86,18 @@ final class TeamInvitationService
             'password' => ['required', 'confirmed', Password::defaults()],
         ], $this->invitedUserValidationMessages(), $this->invitedUserValidationAttributes())->validate();
 
-        $user = $this->createInvitedUser->execute([
-            'name' => $validated['name'],
-            'email' => $invitation->email,
-            'password' => $validated['password'],
-        ]);
+        $accepted = $this->acceptInvitation->executeWithUserResolver(
+            $invitation,
+            fn (TeamInvitation $lockedInvitation): Model => $this->createInvitedUser->execute([
+                'name' => $validated['name'],
+                'email' => $lockedInvitation->email,
+                'password' => $validated['password'],
+            ]),
+        );
 
-        Auth::login($user, false);
-        $request->session()->regenerate();
+        $this->loginAcceptedUser($request, $accepted->user);
 
-        return $this->acceptInvitation->execute($user, $invitation);
+        return $accepted;
     }
 
     protected function authenticateExistingUser(Request $request, Model $existingUser, ?Model $currentUser): Model
@@ -106,10 +116,21 @@ final class TeamInvitationService
             ]);
         }
 
-        Auth::login($existingUser, false);
-        $request->session()->regenerate();
-
         return $existingUser;
+    }
+
+    protected function loginAcceptedUser(Request $request, Model $user): void
+    {
+        $currentUser = $this->currentUser();
+        if ($currentUser?->is($user)) {
+            return;
+        }
+
+        Auth::login($user, false);
+
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
     }
 
     protected function ensureSubmitRateLimit(Request $request, string $token): void
@@ -138,10 +159,10 @@ final class TeamInvitationService
     protected function invitedUserValidationMessages(): array
     {
         return [
-            'name.required' => __('Unesite ime i prezime.'),
+            'name.required' => __('Obavezno polje'),
             'name.string' => __('Ime i prezime mora biti tekst.'),
             'name.max' => __('Ime i prezime smije imati najviše :max znakova.'),
-            'password.required' => __('Unesite lozinku.'),
+            'password.required' => __('Obavezno polje'),
             'password.confirmed' => __('Potvrda lozinke se ne podudara.'),
             'password.min' => __('Lozinka mora imati najmanje :min znakova.'),
             'password.letters' => __('Lozinka mora sadržavati barem jedno slovo.'),
@@ -156,7 +177,7 @@ final class TeamInvitationService
     protected function existingUserValidationMessages(): array
     {
         return [
-            'password.required' => __('Unesite lozinku.'),
+            'password.required' => __('Obavezno polje'),
             'password.string' => __('Lozinka mora biti tekst.'),
         ];
     }
@@ -173,7 +194,7 @@ final class TeamInvitationService
 
     protected function acceptRedirectUrl(): string
     {
-        $routeName = (string) config('velora.invitations.accept_redirect_route', 'teams.settings');
+        $routeName = (string) config('velora.invitations.accept_redirect_route', 'dashboard');
 
         if ($routeName !== '' && app('router')->has($routeName)) {
             return route($routeName);

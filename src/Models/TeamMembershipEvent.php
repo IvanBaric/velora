@@ -6,11 +6,12 @@ namespace IvanBaric\Velora\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
+use IvanBaric\Velora\Traits\HasUuid;
 
 class TeamMembershipEvent extends Model
 {
+    use HasUuid;
+
     protected $fillable = [
         'uuid',
         'team_membership_id',
@@ -25,15 +26,6 @@ class TeamMembershipEvent extends Model
         return [
             'meta' => 'array',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (self $event): void {
-            if (Schema::hasColumn($event->getTable(), 'uuid') && blank($event->uuid)) {
-                $event->uuid = (string) Str::uuid();
-            }
-        });
     }
 
     public function membership(): BelongsTo

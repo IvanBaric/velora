@@ -23,22 +23,33 @@ final class ResendInvitationAction
     {
         $this->authorizeActionOrFail(TeamPermissions::MANAGE_MEMBERS, $invitation);
 
-        if (! $invitation->canBeResent()) {
+        if ($invitation->grantsOwnerAccess() && ! $this->currentActorCanGrantOwnerAccess((int) $invitation->team_id)) {
             throw ValidationException::withMessages([
-                'invitations' => __('Prihvaćene pozivnice nije moguće ponovno poslati.'),
+                'invitations' => __('Samo vlasnik organizacije može ponovno poslati pozivnicu s vlasničkim pristupom.'),
             ]);
         }
 
-        $resolvedRoleSlug = $roleSlug ?? $invitation->role_slug ?? TeamInvitation::defaultRoleSlug($invitation->team_id);
-        $this->ensureRoleCanBeAssigned((string) $resolvedRoleSlug, (int) $invitation->team_id);
-
-        [$invitation, $plainToken] = DB::transaction(function () use ($invitation, $actorUserId, $resolvedRoleSlug): array {
+        [$invitation, $plainToken] = DB::transaction(function () use ($invitation, $actorUserId, $roleSlug): array {
             /** @var TeamInvitation $invitation */
             $invitation = TeamInvitation::query()
                 ->whereKey($invitation->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            if (! $invitation->canBeResent()) {
+                throw ValidationException::withMessages([
+                    'invitations' => __('Prihvaćene pozivnice nije moguće ponovno poslati.'),
+                ]);
+            }
+
+            if ($invitation->grantsOwnerAccess() && ! $this->currentActorCanGrantOwnerAccess((int) $invitation->team_id)) {
+                throw ValidationException::withMessages([
+                    'invitations' => __('Samo vlasnik organizacije može ponovno poslati pozivnicu s vlasničkim pristupom.'),
+                ]);
+            }
+
+            $resolvedRoleSlug = $roleSlug ?? $invitation->role_slug ?? TeamInvitation::defaultRoleSlug($invitation->team_id);
+            $this->ensureRoleCanBeAssigned((string) $resolvedRoleSlug, (int) $invitation->team_id);
             $plainToken = $invitation->prepareForResend($actorUserId, $resolvedRoleSlug);
 
             return [$invitation->fresh() ?? $invitation, $plainToken];
@@ -84,5 +95,20 @@ final class ResendInvitationAction
                 'invitations' => __('Uloga pozivnice više nije dostupna za dodjelu.'),
             ]);
         }
+    }
+
+    private function currentActorCanGrantOwnerAccess(int $teamId): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        $superadminAttribute = config('velora.access.superadmin_attribute');
+        if (is_string($superadminAttribute) && $superadminAttribute !== '' && (bool) data_get($user, $superadminAttribute)) {
+            return true;
+        }
+
+        return method_exists($user, 'ownsTeam') && $user->ownsTeam($teamId);
     }
 }

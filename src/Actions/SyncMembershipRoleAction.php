@@ -6,7 +6,6 @@ namespace IvanBaric\Velora\Actions;
 
 use IvanBaric\Corexis\Concerns\AuthorizesActions;
 use IvanBaric\Velora\Contracts\PlanAccess;
-use IvanBaric\Velora\Enums\TeamMembershipStatus;
 use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
 use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Models\Role;
@@ -33,7 +32,7 @@ final class SyncMembershipRoleAction
             return ActionResult::error(__('Svoju ulogu nije moguće promijeniti na ovaj način.'));
         }
 
-        if ($membership->is_owner) {
+        if ($membership->isOwner()) {
             return ActionResult::error(__('Ulogu vlasnika nije moguće promijeniti.'));
         }
 
@@ -86,18 +85,8 @@ final class SyncMembershipRoleAction
 
     private function currentActorOwnsTeam(int $teamId): bool
     {
-        $userId = auth()->id();
+        $user = auth()->user();
 
-        if (! $userId) {
-            return false;
-        }
-
-        return TeamMembership::query()
-            ->withoutGlobalScopes()
-            ->where('team_id', $teamId)
-            ->where('user_id', (int) $userId)
-            ->where('is_owner', true)
-            ->where('status', TeamMembershipStatus::Active->value)
-            ->exists();
+        return $user && method_exists($user, 'ownsTeam') && $user->ownsTeam($teamId);
     }
 }

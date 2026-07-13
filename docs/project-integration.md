@@ -161,4 +161,3 @@ Keep this responsibility split:
 - `ivanbaric/velora` owns teams, memberships, invitations, role management, permissions and the optional team UI.
 - The project owns the admin sidebar label `Suradnici`, app-specific middleware, onboarding redirects and visual placement inside the admin shell.
 - Other packages and app modules should rely on Velora for team context instead of storing their own current-team logic.
-

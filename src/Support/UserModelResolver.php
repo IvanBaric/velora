@@ -14,19 +14,7 @@ class UserModelResolver
      */
     public function className(): string
     {
-        $configured = config('velora.models.user');
-
-        if (is_string($configured) && class_exists($configured)) {
-            return $configured;
-        }
-
-        $authModel = config('auth.providers.users.model');
-
-        if (is_string($authModel) && class_exists($authModel)) {
-            return $authModel;
-        }
-
-        throw new \RuntimeException('Configure velora.models.user or auth.providers.users.model with an Eloquent model class.');
+        return VeloraConfigResolver::userModel();
     }
 
     public function instance(): Model
