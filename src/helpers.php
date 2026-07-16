@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\OrganizationModelResolver;
 use IvanBaric\Velora\Support\TeamContextResolver;
 use IvanBaric\Velora\Support\TeamModelResolver;
 use IvanBaric\Velora\Support\UserModelResolver;
@@ -50,6 +51,28 @@ if (! function_exists('velora_team_model')) {
         $resolver = app(TeamModelResolver::class);
 
         return $resolver->className();
+    }
+}
+
+if (! function_exists('velora_organization_model')) {
+    /** @return class-string<Model> */
+    function velora_organization_model(): string
+    {
+        return app(OrganizationModelResolver::class)->className();
+    }
+}
+
+if (! function_exists('velora_organization_query')) {
+    function velora_organization_query(): Builder
+    {
+        return app(OrganizationModelResolver::class)->query();
+    }
+}
+
+if (! function_exists('velora_organization_table')) {
+    function velora_organization_table(): string
+    {
+        return app(OrganizationModelResolver::class)->table();
     }
 }
 

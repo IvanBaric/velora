@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use IvanBaric\Velora\Models\Organization;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Support\AllowAllPlanAccess;
 use IvanBaric\Velora\Support\TeamPermissions;
@@ -53,10 +54,17 @@ return [
     'models' => [
         'user' => env('VELORA_USER_MODEL'),
         'team' => env('VELORA_TEAM_MODEL', Team::class),
+        'organization' => env('VELORA_ORGANIZATION_MODEL', Organization::class),
     ],
 
     'access' => [
         'superadmin_attribute' => env('VELORA_SUPERADMIN_ATTRIBUTE'),
+    ],
+
+    'support_mode' => [
+        'enabled' => env('VELORA_SUPPORT_MODE_ENABLED', false),
+        'superadmin_attribute' => env('VELORA_SUPPORT_MODE_SUPERADMIN_ATTRIBUTE'),
+        'team_id_attribute' => env('VELORA_SUPPORT_MODE_TEAM_ID_ATTRIBUTE'),
     ],
 
     /*

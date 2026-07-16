@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User;
 use IvanBaric\Corexis\Exceptions\InvalidConfiguration;
 use IvanBaric\Corexis\Support\ConfigResolver;
 use IvanBaric\Velora\Contracts\PlanAccess;
+use IvanBaric\Velora\Models\Organization;
 use IvanBaric\Velora\Models\Team;
 
 final class VeloraConfigResolver
@@ -50,6 +51,16 @@ final class VeloraConfigResolver
             key: 'velora.models.team',
             default: Team::class,
             expectedType: Model::class,
+        );
+    }
+
+    /** @return class-string<Model> */
+    public static function organizationModel(): string
+    {
+        return app(ConfigResolver::class)->model(
+            key: 'velora.models.organization',
+            default: Organization::class,
+            expectedType: Organization::class,
         );
     }
 

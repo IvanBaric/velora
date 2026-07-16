@@ -22,14 +22,17 @@ use IvanBaric\Velora\Http\Livewire\TeamMemberManager;
 use IvanBaric\Velora\Http\Livewire\TeamSettings;
 use IvanBaric\Velora\Http\Middleware\EnsurePermission;
 use IvanBaric\Velora\Http\Middleware\EnsureRole;
+use IvanBaric\Velora\Http\Middleware\EnsureSuperadmin;
 use IvanBaric\Velora\Http\Middleware\SetTeam;
 use IvanBaric\Velora\Http\Middleware\VerifyMembership;
 use IvanBaric\Velora\Listeners\SendTeamMemberJoinedNotifications;
 use IvanBaric\Velora\Models\Team;
 use IvanBaric\Velora\Policies\TeamPolicy;
+use IvanBaric\Velora\Support\OrganizationModelResolver;
 use IvanBaric\Velora\Support\PermissionOverrides;
 use IvanBaric\Velora\Support\PermissionRegistrar;
 use IvanBaric\Velora\Support\RolePreview;
+use IvanBaric\Velora\Support\SupportContext;
 use IvanBaric\Velora\Support\SystemAccessSynchronizer;
 use IvanBaric\Velora\Support\TeamContextResolver;
 use IvanBaric\Velora\Support\TeamModelResolver;
@@ -48,8 +51,10 @@ class VeloraServiceProvider extends ServiceProvider
         $this->app->singleton(PermissionOverrides::class);
         $this->app->singleton(RolePreview::class);
         $this->app->singleton(SystemAccessSynchronizer::class);
+        $this->app->singleton(SupportContext::class);
         $this->app->singleton(UserModelResolver::class);
         $this->app->singleton(TeamModelResolver::class);
+        $this->app->singleton(OrganizationModelResolver::class);
         $this->app->singleton(PlanAccess::class, function ($app): PlanAccess {
             return $app->make(VeloraConfigResolver::planAccessResolver());
         });
@@ -125,6 +130,7 @@ class VeloraServiceProvider extends ServiceProvider
         $router->aliasMiddleware('team.member', VerifyMembership::class);
         $router->aliasMiddleware('role', EnsureRole::class);
         $router->aliasMiddleware('permission', EnsurePermission::class);
+        $router->aliasMiddleware('velora.superadmin', EnsureSuperadmin::class);
     }
 
     protected function registerLivewire(): void

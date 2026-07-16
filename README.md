@@ -18,6 +18,7 @@ It is designed as a backend-first package:
 - Membership transitions with audit history and events.
 - Configurable current-team resolution strategy.
 - Configurable user model via `velora.models.user`.
+- Reusable public organization profile with configurable host model via `velora.models.organization`.
 - Permission gate delegation, middleware aliases, and Blade directives.
 - Optional entitlement integration through `VeloraEntitlements`.
 - Optional Livewire + Flux UI for `/app/team`.
@@ -110,6 +111,21 @@ Velora resolves models through `config/velora.php`. If `velora.models.user` is n
 
 Internally, Velora resolves the user model through `velora_user_model()`, `velora_user_query()`, and `velora_user_table()`.
 
+Velora also provides `IvanBaric\Velora\Models\Organization` as a generic public profile linked to a team. Applications may extend it to add Gallery, SEO or product-specific concerns without adding those dependencies to Velora:
+
+```php
+use IvanBaric\Velora\Models\Organization as BaseOrganization;
+
+class Organization extends BaseOrganization
+{
+    use HasGalleries, HasSeo;
+}
+```
+
+Configure the host model through `velora.models.organization`. Resolve it through `velora_organization_model()`, `velora_organization_query()` and `velora_organization_table()`.
+
+The package migrations create the reusable organization table and enforce unique public slugs. Existing applications can move their organization migration into Velora and extend the package model while preserving their configured host class. Gallery, SEO, catalog and project-specific relationships remain host concerns.
+
 Velora models expose UUID route keys through `IvanBaric\Velora\Traits\HasUuid`. That trait now delegates to the shared Corexis `HasUuid` concern, so UUID creation behavior stays aligned with the rest of the IvanBaric package ecosystem while the old Velora trait remains available for compatibility.
 
 ### 3. Resolve team context on app routes
@@ -140,6 +156,30 @@ Available strategies:
 - `system_team_fallback`
 
 If you do not want silent fallback behavior, keep `strict`.
+
+### Superadmin Support Context
+
+Velora can represent a superadministrator temporarily operating inside a selected tenant:
+
+```php
+'support_mode' => [
+    'enabled' => true,
+    'superadmin_attribute' => null, // falls back to velora.access.superadmin_attribute
+    'team_id_attribute' => null, // falls back to current_team.user_team_id_column
+],
+```
+
+```php
+$support = app(\IvanBaric\Velora\Support\SupportContext::class);
+
+$support->activeFor(auth()->user());
+$support->teamIdFor(auth()->user());
+$support->teamFor(auth()->user());
+```
+
+`IvanBaric\Velora\Http\Middleware\EnsureSuperadmin` protects routes through the packaged `velora.superadmin` middleware alias. Hosts may keep an existing route alias and point it to the same middleware class.
+
+`SupportContext` accepts integer or string tenant keys, uses the configured team model connection and returns a team only when support mode is enabled, the actor has the configured superadmin attribute and a selected tenant exists. The feature is disabled by default and can be configured with `VELORA_SUPPORT_MODE_ENABLED`, `VELORA_SUPPORT_MODE_SUPERADMIN_ATTRIBUTE` and `VELORA_SUPPORT_MODE_TEAM_ID_ATTRIBUTE`.
 
 ## Built-in Routes
 
