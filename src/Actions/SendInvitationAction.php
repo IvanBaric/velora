@@ -9,14 +9,19 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 use IvanBaric\Corexis\Concerns\AuthorizesActions;
+use IvanBaric\Velora\Contracts\PlanAccess;
 use IvanBaric\Velora\Data\InvitationDispatchData;
 use IvanBaric\Velora\Enums\TeamInvitationStatus;
 use IvanBaric\Velora\Enums\TeamMembershipStatus;
+use IvanBaric\Velora\Exceptions\PlanFeatureUnavailableException;
+use IvanBaric\Velora\Exceptions\PlanLimitExceededException;
 use IvanBaric\Velora\Mail\TeamInvitationMail;
 use IvanBaric\Velora\Models\Role;
 use IvanBaric\Velora\Models\TeamInvitation;
 use IvanBaric\Velora\Models\TeamMembership;
+use IvanBaric\Velora\Support\PlanFeatures;
 use IvanBaric\Velora\Support\TeamPermissions;
+use IvanBaric\Velora\Support\TeamPlanUsage;
 
 final class SendInvitationAction
 {
@@ -52,6 +57,8 @@ final class SendInvitationAction
             if ($existing && $existing->isExpired()) {
                 $existing->markExpired($actorUserId);
             }
+
+            $this->ensureInvitationFitsCurrentPlan($teamId);
 
             if ($existing) {
                 $plainToken = $existing->prepareForResend($actorUserId, $roleSlug);
@@ -121,6 +128,27 @@ final class SendInvitationAction
         if ($isMember) {
             throw ValidationException::withMessages([
                 'email' => __('Suradnik je već član organizacije.'),
+            ]);
+        }
+    }
+
+    protected function ensureInvitationFitsCurrentPlan(int $teamId): void
+    {
+        $teamModel = velora_team_model();
+        $team = $teamModel::query()
+            ->whereKey($teamId)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        try {
+            app(PlanAccess::class)->assertWithinLimit(
+                $team,
+                PlanFeatures::TEAM_MEMBERS_LIMIT,
+                TeamPlanUsage::occupiedMemberSeats($team),
+            );
+        } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
+            throw ValidationException::withMessages([
+                'email' => __('Dosegnut je limit suradnika za trenutni plan. Postojeći suradnici zadržavaju pristup, ali nije moguće dodati novu pozivnicu.'),
             ]);
         }
     }

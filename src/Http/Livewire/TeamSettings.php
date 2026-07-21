@@ -199,12 +199,12 @@ class TeamSettings extends Component
             app(PlanAccess::class)->assertWithinLimit(
                 team(),
                 PlanFeatures::TEAM_MEMBERS_LIMIT,
-                TeamPlanUsage::members(team()),
+                TeamPlanUsage::occupiedMemberSeats(team()),
             );
 
             return null;
         } catch (PlanLimitExceededException|PlanFeatureUnavailableException) {
-            $planCode = (string) (team()->plan_code ?: 'starter');
+            $planCode = (string) ((team()->getAttributes()['plan_code'] ?? null) ?: 'starter');
             $planName = __("plans::plans.{$planCode}.name");
 
             return __('Pozivnice nisu dostupne na planu :plan jer je dosegnut limit suradnika. Nadogradite plan kako biste dodali nove suradnike.', [
